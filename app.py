@@ -1259,6 +1259,15 @@ _SSE_HEADERS = {
     "Connection": "keep-alive",
 }
 
+def _want_usage(stream_options) -> bool:
+    """Downstream clients (LangChain, some SDKs / agent frameworks) send
+    `stream_options.include_usage=true`, requiring one extra chunk before [DONE] with
+    empty `choices: []` plus `usage`. Without it a few frameworks wait for usage forever."""
+    if isinstance(stream_options, dict):
+        return bool(stream_options.get("include_usage"))
+    return False
+
+
 
 @app.post("/v1/chat/completions")
 async def chat_completions(req: ChatRequest, _=Depends(auth)):
