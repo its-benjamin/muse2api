@@ -130,7 +130,9 @@ Wraps the cutting-edge multimodal capabilities of the **[muse.ai](https://muse.a
 
 ---
 
-## Chrome Import Extension (zero barrier)
+## Account Import (Chrome Extension / Tampermonkey)
+
+### Option A: Chrome / Edge Extension
 
 The project ships a dedicated Chrome import extension (in `extension/`), so no more fiddly F12 cookie extraction:
 
@@ -140,11 +142,13 @@ The project ships a dedicated Chrome import extension (in `extension/`), so no m
 4. Click the extension icon in the toolbar and fill in your service URL (e.g. `http://1.2.3.4:18610`) and `MUSE2API_KEY`.
 5. Click **Read and import** — synced into the pool within seconds!
 
-### 方式 B：Tampermonkey 油猴脚本（跨浏览器免安装扩展）
-对于不想开启开发者模式或使用 Firefox / Safari 的用户，提供了油猴脚本（位于 `tools/muse2api_cookie_importer.user.js`）：
-1. 在浏览器安装 Tampermonkey 插件。
-2. 新建脚本并将 `tools/muse2api_cookie_importer.user.js` 内容复制粘贴保存。
-3. 打开 [muse.ai](https://muse.ai/) 网页，右下角将出现 **「⚡ 导入到 muse2api」** 悬浮按钮，右键即可配置服务地址与 Key，左键一键推送入库并自动复制剪贴板兜底。
+### Option B: Tampermonkey Userscript (cross-browser, no developer mode needed)
+
+For users who prefer not to enable developer mode, or who use Firefox / Safari:
+
+1. Install the [Tampermonkey](https://www.tampermonkey.net/) extension in your browser.
+2. Create a new userscript and paste the contents of `tools/muse2api_cookie_importer.user.js`, then save.
+3. Open [muse.ai](https://muse.ai/) — a **⚡ Import to muse2api** floating button appears at the bottom-right. Right-click to configure your service URL and API key; left-click to push cookies into the pool (also copies to clipboard as a fallback).
 
 ---
 
@@ -291,6 +295,18 @@ This project links to and highly endorses the **[LINUX DO community](https://lin
 - [LINUX DO community (https://linux.do/)](https://linux.do/) — an emerging ideal community (sincere, friendly, united, professional; building a community we are proud of)
 
 ---
+
+## 👥 Contributors
+
+Thanks to the following developers for code contributions and improvements (in PR merge order):
+
+- 🌟 **[@cpt-kenvie](https://github.com/cpt-kenvie)** ([PR #2](https://github.com/czg86389-hub/muse2api/pull/2)) — Fixed Docker Compose environment variable resolution so `MUSE2API_KEY` reads from `.env` instead of being overridden by the hardcoded example value.
+- 🌟 **[@CarloCPP](https://github.com/CarloCPP)** ([PR #6](https://github.com/czg86389-hub/muse2api/pull/6)) — Added the Tampermonkey cookie importer userscript and optional keepalive for disabled accounts (`MUSE2API_KEEPALIVE_DISABLED_ACCOUNTS`).
+
+PRs and issues are welcome — let's make this better together!
+
+---
+
 
 ## License
 

@@ -587,8 +587,6 @@ class MuseEngine:
                 if (hasStop || hasStuck || hasAtts) return true;
                 if (forChat) {
                     return bubbleCount >= 24;
-                }
-                return (window.location.pathname !== '/thread/new') || bubbleCount > 0;
             })(%s)""" % ("true" if for_chat else "false"))
             if needs_nav:
                 self.page.send("Page.navigate", {"url": "https://muse.ai/thread/new"})
@@ -1162,7 +1160,7 @@ class MuseEngine:
         sent, last, stable = "", None, 0
         got_first = False
 
-        # Wait for the new reply: single CDP poll merges scroll + bubble detection, 80ms fast response
+        # Phase 1: wait for assistant to start generating (60ms sampling; yield first delta immediately)
         while time.time() < first_token_deadline:
             if stop_event is not None and stop_event.is_set():
                 return
@@ -1175,7 +1173,7 @@ class MuseEngine:
                     except Exception:
                         tail = ""
                     if "Still sending" in tail or "Connecting..." in tail:
-                        raise MuseGenerationError("云端 VM 连接超时 (Still sending)")
+                        raise MuseGenerationError("Cloud VM connection timed out (Still sending)")
                 continue
 
             delta = cur[len(sent):] if cur.startswith(sent) else cur
@@ -1185,22 +1183,11 @@ class MuseEngine:
                 last = cur
                 got_first = True
                 break
-            if cur and cur != base_text:
-                got_first = True
-                break
-            if time.time() - t_sent > 12.0:
-                try:
-                    tail = self.page.js("document.body.innerText.slice(-500)") or ""
-                except Exception:
-                    tail = ""
-                if "Still sending" in tail or "Connecting..." in tail:
-                    raise MuseGenerationError("Cloud VM connection timed out (Still sending)")
 
         if not got_first:
             raise MuseGenerationError("Timed out waiting for the first assistant response token")
 
-        # Stream incremental text: finish immediately once text is stable 3 times in a row (~0.3s) with no Stop button, removing the 1.2s tail stall
-        sent, last, stable = "", None, 0
+        # Phase 2: stream remaining incremental text at 60ms cadence
         while time.time() < deadline:
             if stop_event is not None and stop_event.is_set():
                 return
@@ -1217,8 +1204,12 @@ class MuseEngine:
                 last, stable = cur, 0
             else:
                 stable += 1
-                # Stop 按钮消失说明前端生成彻底结束，连续 3 次（约 0.18s）无新文本即正常退出
+                # Stop button gone → generation truly finished; 3 stable polls (~0.18s) is enough
                 if not has_stop and stable >= 3:
+                    return
+                # Stop button still present → model is thinking / writing code block / network jitter;
+                # allow up to stable >= 80 (~5s) as a dead-man's-switch to prevent hang
+                if has_stop and stable >= 80:
                     return
         raise MuseGenerationError("Timed out waiting for the assistant reply")
     def chat(self, cookies: dict, prompt: str, expires: dict | None = None,

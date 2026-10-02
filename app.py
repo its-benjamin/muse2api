@@ -1238,20 +1238,10 @@ def _chat_chunk(cid: str, created: int, model: str, delta: dict,
             "choices": [{"index": 0, "delta": delta, "finish_reason": finish}]}
 
 
-def _want_usage(stream_options) -> bool:
-    """Downstream clients (LangChain, some SDKs / agent frameworks) send
-    `stream_options.include_usage=true`, requiring one extra chunk before [DONE] with
-    empty `choices: []` plus `usage`. Without it a few frameworks wait for usage forever."""
-    if isinstance(stream_options, dict):
-        return bool(stream_options.get("include_usage"))
-    return False
-
-
 def _pace_text(text: str, chunk_size: int = 2, delay: float = 0.012):
-    """把大块文本平滑切分为仿原生 LLM 打字机的微流式 Token。
-    若传入文本本身微小（<= 3 字），直接秒级放行，零延迟；
-    若传入文本是大块（如 DOM 批量刷新），按每 chunk_size 字间隔 delay 平滑输出。
-    """
+    """Smooth a bulky DOM-poll delta into native-LLM-like micro-tokens.
+    Tiny text (<= 3 chars) passes through with zero delay; large bulk
+    refreshes are sliced into `chunk_size`-char pieces spaced `delay` apart."""
     if not text:
         return
     if len(text) <= 3 or delay <= 0:
@@ -1319,7 +1309,7 @@ async def chat_completions(req: ChatRequest, _=Depends(auth)):
     if req.stream:
         def sync_stream():
             try:
-                # 握手建立瞬间立即发送 role: assistant 首包，让下游客户端秒级捕获光标
+                # Emit role:assistant chunk immediately so downstream clients show cursor right away
                 yield _sse(_chat_chunk(cid, created, model, {"role": "assistant"}))
 
                 stream_gen = safe_chat_stream(cookies, prompt, expires, timeout, account_id=acc_id)
