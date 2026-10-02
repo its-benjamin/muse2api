@@ -32,143 +32,254 @@ ATT_SEL = '[data-testid^="hatch-chat-attachment-presentation-"]'
 ESSENTIAL_COOKIES = ("hatch_sess", "hatch_gw", "hatch_vml",
                      "hatch_native_auth_device")
 
-# Stealth script injected via Page.addScriptToEvaluateOnNewDocument
-# before any page script executes, spoofing automation artifacts
-# (navigator.webdriver, window.chrome, plugins, console traps, leak vars).
-STEALTH_JS = """(() => {
-    const nativeMap = new WeakMap();
-    const origToString = Function.prototype.toString;
+# ---------------------------------------------------------------------------
+# Stealth injection – two-layer approach:
+#   1. stealth.min.js  – puppeteer-extra-plugin-stealth bundle (MIT), covering
+#      16 evasions: webdriver, chrome.runtime/app/csi/loadTimes, plugins,
+#      iframe.contentWindow, media.codecs, hardwareConcurrency, languages,
+#      permissions, webgl.vendor, window.outerdimensions, sourceurl, UA.
+#      Regenerate: cd tools && npx extract-stealth-evasions
+#   2. Hardware override script – thin JS generated at startup from the real
+#      Chrome version + a hardware profile (WebGL renderer, concurrency, mem).
+#      Runs after layer 1 so it wins any conflicts.
+# ---------------------------------------------------------------------------
 
-    function setNative(fn, name) {
-        try { Object.defineProperty(fn, 'name', { value: name || fn.name || '', configurable: true }); } catch(e) {}
-        nativeMap.set(fn, name || fn.name || '');
-        return fn;
-    }
+def _load_stealth_bundle() -> str:
+    """Load tools/stealth.min.js relative to this file; return empty str on miss."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(here, "tools", "stealth.min.js")
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+    except OSError:
+        log.warning("stealth.min.js not found at %s – running without puppeteer-extra stealth bundle", path)
+        return ""
 
-    try {
-        Function.prototype.toString = function() {
-            if (nativeMap.has(this)) {
-                const name = nativeMap.get(this);
-                return `function ${name}() { [native code] }`;
-            }
-            return origToString.call(this);
-        };
-        setNative(Function.prototype.toString, 'toString');
-    } catch(e) {}
 
-    // 1. Completely delete webdriver from navigator instance & prototype
-    try { delete Navigator.prototype.webdriver; } catch(e) {}
-    try { delete navigator.webdriver; } catch(e) {}
+# Loaded once at import time; empty string = file missing (non-fatal).
+_STEALTH_BUNDLE = _load_stealth_bundle()
 
-    // 2. Realistic window.chrome object
-    try {
-        window.chrome = {
-            runtime: {},
-            loadTimes: setNative(function() {}, 'loadTimes'),
-            csi: setNative(function() {}, 'csi'),
-            app: {}
-        };
-    } catch(e) {}
 
-    // 3. Plugins array
-    try {
-        const pluginsData = [
-            { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
-            { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai', description: '' },
-            { name: 'Native Client', filename: 'internal-nacl-plugin', description: '' }
-        ];
-        const pArray = Object.create(PluginArray.prototype);
-        pluginsData.forEach((p, idx) => {
-            const plugin = Object.create(Plugin.prototype);
-            Object.defineProperties(plugin, {
-                name: { value: p.name, enumerable: true },
-                filename: { value: p.filename, enumerable: true },
-                description: { value: p.description, enumerable: true },
-                length: { value: 0, enumerable: true }
-            });
-            Object.defineProperty(plugin, Symbol.toStringTag, { value: 'Plugin' });
-            pArray[idx] = plugin;
-            pArray[p.name] = plugin;
-        });
-        Object.defineProperties(pArray, {
-            length: { value: pluginsData.length, enumerable: true },
-            item: { value: setNative(function(i) { return this[i] || null; }, 'item') },
-            namedItem: { value: setNative(function(n) { return this[n] || null; }, 'namedItem') },
-            refresh: { value: setNative(function() {}, 'refresh') }
-        });
-        Object.defineProperty(pArray, Symbol.toStringTag, { value: 'PluginArray' });
+def _detect_chrome_version(chrome_exe: str) -> tuple[int, str]:
+    """Return (major, full_version) for the Chrome binary at *chrome_exe*.
 
-        Object.defineProperty(navigator, 'plugins', {
-            get: setNative(() => pArray, 'get plugins'),
-            configurable: true,
-            enumerable: true
-        });
-    } catch(e) {}
+    Resolution order (fast-to-slow, all Windows/POSIX safe):
+    1. Walk the parent directory for a NN.x.x.x sub-directory (instant, no spawn).
+    2. ``chrome --version`` subprocess (macOS/Linux only; skipped on Windows).
+    Falls back to (154, '154.0.8037.97') so the engine never hard-crashes.
+    """
+    # --- method 1: version directory next to the exe (Windows & Linux) -----
+    try:
+        parent = os.path.dirname(os.path.abspath(chrome_exe))
+        for entry in os.listdir(parent):
+            m = re.match(r'^(\d+)\.(\d+\.\d+\.\d+)$', entry)
+            if m and os.path.isdir(os.path.join(parent, entry)):
+                return int(m.group(1)), entry          # e.g. (154, '154.0.8037.97')
+    except Exception:
+        pass
 
-    // 4. Languages
-    try {
-        Object.defineProperty(navigator, 'languages', {
-            get: setNative(() => ['en-US', 'en'], 'get languages'),
-            configurable: true,
-            enumerable: true
-        });
-    } catch(e) {}
+    # --- method 2: subprocess --version (macOS/Linux; ~1s, avoid on Windows) -
+    if os.name != "nt":
+        try:
+            out = subprocess.check_output(
+                [chrome_exe, "--version"], stderr=subprocess.DEVNULL, timeout=8
+            ).decode().strip()
+            m = re.search(r"(\d+)\.(\d+\.\d+\.\d+)", out)
+            if m:
+                return int(m.group(1)), m.group(1) + "." + m.group(2)
+        except Exception:
+            pass
 
-    // 5. Permissions query consistency
-    try {
-        const origQuery = window.navigator.permissions.query.bind(window.navigator.permissions);
-        window.navigator.permissions.query = setNative((params) => {
-            if (params && params.name === 'notifications') {
-                return Promise.resolve({ state: Notification.permission, onchange: null });
-            }
-            return origQuery(params);
-        }, 'query');
-    } catch(e) {}
+    # --- fallback -----------------------------------------------------------
+    return 154, "154.0.8037.97"
 
-    // 6. Console traps mitigation (Runtime.enable side-effect masks)
-    try {
-        for (const method of ['debug', 'log', 'info', 'warn', 'error']) {
-            if (console[method]) {
-                const orig = console[method].bind(console);
-                console[method] = setNative(function(...args) {
-                    try { orig(...args); } catch(e) {}
-                }, method);
-            }
-        }
-    } catch(e) {}
-    // 7. WebGL unmasked vendor/renderer spoofing (prevents Google SwiftShader / software rasterizer detection)
-    try {
-        const addWebGL = (proto) => {
+
+# Hardware profile pool.
+# Keyed by (major % len) so a given Chrome version always maps to the same
+# profile — stable across requests, no randomness that detectors flag.
+_HW_PROFILES = [
+    {   # 0 – Intel integrated (most common laptop GPU)
+        "vendor":   "Google Inc. (Intel)",
+        "renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "cores": 8, "mem": 8,
+    },
+    {   # 1 – NVIDIA mid-range desktop
+        "vendor":   "Google Inc. (NVIDIA)",
+        "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "cores": 16, "mem": 16,
+    },
+    {   # 2 – AMD mid-range desktop
+        "vendor":   "Google Inc. (AMD)",
+        "renderer": "ANGLE (AMD, AMD Radeon RX 6700 XT Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "cores": 12, "mem": 16,
+    },
+    {   # 3 – Intel UHD (desktop / workstation)
+        "vendor":   "Google Inc. (Intel)",
+        "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 770 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "cores": 8, "mem": 8,
+    },
+]
+
+
+def _hw_override_js(hw: dict) -> str:
+    """Return a small JS snippet that overrides WebGL vendor/renderer,
+    hardwareConcurrency, and deviceMemory with values from *hw*.
+    Runs AFTER stealth.min.js so it wins any conflicts."""
+    vendor   = json.dumps(hw["vendor"])
+    renderer = json.dumps(hw["renderer"])
+    cores    = hw["cores"]
+    mem      = hw["mem"]
+    return f"""(() => {{
+    // Layer-2 hardware overrides (dynamic, matches real Chrome version profile)
+    const _orig = Function.prototype.toString;
+    const _nat = new WeakMap();
+    function _setNat(fn, name) {{
+        try {{ Object.defineProperty(fn, 'name', {{ value: name, configurable: true }}); }} catch(e) {{}}
+        _nat.set(fn, name); return fn;
+    }}
+
+    // WebGL vendor + renderer (overrides stealth.min.js defaults with profile-matched strings)
+    try {{
+        const _patch = (proto) => {{
             if (!proto) return;
-            const oldGetParam = proto.getParameter;
-            proto.getParameter = setNative(function(param) {
-                if (param === 0x9245) return 'Google Inc. (Intel)';
-                if (param === 0x9246) return 'ANGLE (Intel, Intel(R) Iris(R) Xe Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)';
-                return oldGetParam.apply(this, arguments);
-            }, 'getParameter');
-        };
-        addWebGL(WebGLRenderingContext.prototype);
-        if (typeof WebGL2RenderingContext !== 'undefined') addWebGL(WebGL2RenderingContext.prototype);
-    } catch(e) {}
+            const _old = proto.getParameter;
+            proto.getParameter = _setNat(function(p) {{
+                if (p === 0x9245) return {vendor};
+                if (p === 0x9246) return {renderer};
+                return _old.apply(this, arguments);
+            }}, 'getParameter');
+        }};
+        _patch(WebGLRenderingContext.prototype);
+        if (typeof WebGL2RenderingContext !== 'undefined') _patch(WebGL2RenderingContext.prototype);
+    }} catch(e) {{}}
 
-    // 8. Hardware metrics consistency (prevents 0 or headless default anomalies)
-    try {
-        if (!navigator.hardwareConcurrency || navigator.hardwareConcurrency < 2) {
-            Object.defineProperty(navigator, 'hardwareConcurrency', { get: setNative(() => 8, 'get hardwareConcurrency') });
-        }
-        if (!navigator.deviceMemory) {
-            Object.defineProperty(navigator, 'deviceMemory', { get: setNative(() => 8, 'get deviceMemory') });
-        }
-    } catch(e) {}
+    // hardwareConcurrency + deviceMemory
+    try {{
+        Object.defineProperty(navigator, 'hardwareConcurrency', {{
+            get: _setNat(() => {cores}, 'get hardwareConcurrency'), configurable: true
+        }});
+    }} catch(e) {{}}
+    try {{
+        Object.defineProperty(navigator, 'deviceMemory', {{
+            get: _setNat(() => {mem}, 'get deviceMemory'), configurable: true
+        }});
+    }} catch(e) {{}}
 
-    // 9. Strip automation leak variables
-    const leakPrefixes = ['$cdc_', '$chrome_', '__nightmare', '__selenium', '_Selenium_IDE_Recorder'];
-    for (const k of Object.keys(window)) {
-        if (leakPrefixes.some(p => k.startsWith(p))) {
-            try { delete window[k]; } catch(e) {}
-        }
+    // Canvas noise – tiny deterministic per-session offset so every
+    // readback is unique but stable within a session (avoids blank-canvas detection)
+    try {{
+        const _noise = (Math.random() * 0.1) - 0.05;
+        const _origToBlob   = HTMLCanvasElement.prototype.toBlob;
+        const _origToData   = HTMLCanvasElement.prototype.toDataURL;
+        const _origGetImage = CanvasRenderingContext2D.prototype.getImageData;
+        HTMLCanvasElement.prototype.toDataURL = _setNat(function(...args) {{
+            const ctx = this.getContext('2d');
+            if (ctx) {{
+                const id = ctx.getImageData(0, 0, this.width || 1, this.height || 1);
+                id.data[0] = Math.max(0, id.data[0] + _noise * 255 | 0);
+                ctx.putImageData(id, 0, 0);
+            }}
+            return _origToData.apply(this, args);
+        }}, 'toDataURL');
+        HTMLCanvasElement.prototype.toBlob = _setNat(function(cb, ...args) {{
+            const ctx = this.getContext('2d');
+            if (ctx) {{
+                const id = ctx.getImageData(0, 0, this.width || 1, this.height || 1);
+                id.data[0] = Math.max(0, id.data[0] + _noise * 255 | 0);
+                ctx.putImageData(id, 0, 0);
+            }}
+            return _origToBlob.call(this, cb, ...args);
+        }}, 'toBlob');
+        CanvasRenderingContext2D.prototype.getImageData = _setNat(function(...args) {{
+            const id = _origGetImage.apply(this, args);
+            id.data[0] = Math.max(0, id.data[0] + _noise * 255 | 0);
+            return id;
+        }}, 'getImageData');
+    }} catch(e) {{}}
+
+    // AudioContext hash noise – shifts the oscillator output by a tiny epsilon
+    try {{
+        const _origGetChan = AudioBuffer.prototype.getChannelData;
+        AudioBuffer.prototype.getChannelData = _setNat(function(ch) {{
+            const arr = _origGetChan.call(this, ch);
+            if (arr.length > 0) arr[0] += _noise * 1e-7;
+            return arr;
+        }}, 'getChannelData');
+    }} catch(e) {{}}
+
+    // Timezone consistency – lock Intl.DateTimeFormat to a real US/EU timezone
+    // so it matches the Windows locale rather than exposing a headless server TZ
+    try {{
+        const _tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+        const _origDTF = Intl.DateTimeFormat;
+        Intl.DateTimeFormat = _setNat(function(locales, opts) {{
+            opts = Object.assign({{ timeZone: _tz }}, opts || {{}});
+            return new _origDTF(locales, opts);
+        }}, 'DateTimeFormat');
+        Object.defineProperty(Intl.DateTimeFormat, 'prototype', {{
+            value: _origDTF.prototype, configurable: true
+        }});
+    }} catch(e) {{}}
+
+    // navigator.connection – RTT and type consistent with a cable/WiFi desktop
+    try {{
+        if (navigator.connection) {{
+            Object.defineProperties(navigator.connection, {{
+                rtt:              {{ get: _setNat(() => 50,       'get rtt'),              configurable: true }},
+                downlink:         {{ get: _setNat(() => 10,       'get downlink'),         configurable: true }},
+                effectiveType:    {{ get: _setNat(() => '4g',     'get effectiveType'),    configurable: true }},
+                saveData:         {{ get: _setNat(() => false,    'get saveData'),         configurable: true }},
+            }});
+        }}
+    }} catch(e) {{}}
+}})();"""
+
+
+def _build_stealth_profile(chrome_exe: str) -> dict:
+    """Build a complete stealth profile dict for the given Chrome binary.
+
+    Returns a dict with keys:
+      user_agent   – UA string for Emulation.setUserAgentOverride
+      ua_metadata  – userAgentMetadata dict for same CDP call
+      bundle_js    – puppeteer-extra stealth bundle (layer 1, 16 evasions)
+      hw_js        – hardware/canvas/audio/TZ override script (layer 2)
+    """
+    major, full = _detect_chrome_version(chrome_exe)
+    hw = _HW_PROFILES[major % len(_HW_PROFILES)]
+    log.info("Stealth profile: Chrome %s (%s), GPU=%s", major, full, hw["vendor"])
+
+    user_agent = (
+        f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        f"AppleWebKit/537.36 (KHTML, like Gecko) "
+        f"Chrome/{major}.0.0.0 Safari/537.36"
+    )
+    ua_metadata = {
+        "brands": [
+            {"brand": "Google Chrome", "version": str(major)},
+            {"brand": "Chromium",      "version": str(major)},
+            {"brand": "Not=A?Brand",   "version": "24"},
+        ],
+        "fullVersionList": [
+            {"brand": "Google Chrome", "version": full},
+            {"brand": "Chromium",      "version": full},
+            {"brand": "Not=A?Brand",   "version": "24.0.0.0"},
+        ],
+        "fullVersion":     full,
+        "platform":        "Windows",
+        "platformVersion": "10.0.0",
+        "architecture":    "x86",
+        "model":           "",
+        "mobile":          False,
+        "bitness":         "64",
+        "wow64":           False,
     }
-})();"""
+    return {
+        "user_agent":  user_agent,
+        "ua_metadata": ua_metadata,
+        "bundle_js":   _STEALTH_BUNDLE,
+        "hw_js":       _hw_override_js(hw),
+    }
+
 
 class MuseAuthError(RuntimeError):
     pass
@@ -396,31 +507,17 @@ class MuseEngine:
         page.send("Browser.setDownloadBehavior",
                   {"behavior": "allow", "downloadPath": self.cfg.download_dir})
         try:
+            _sp = _build_stealth_profile(self.cfg.chromium)
             page.send("Emulation.setUserAgentOverride", {
-                "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
-                "platform": "Win32",
-                "userAgentMetadata": {
-                    "brands": [
-                        {"brand": "Google Chrome", "version": "154"},
-                        {"brand": "Chromium", "version": "154"},
-                        {"brand": "Not=A?Brand", "version": "24"}
-                    ],
-                    "fullVersionList": [
-                        {"brand": "Google Chrome", "version": "154.0.8037.58"},
-                        {"brand": "Chromium", "version": "154.0.8037.58"},
-                        {"brand": "Not=A?Brand", "version": "24.0.0.0"}
-                    ],
-                    "fullVersion": "154.0.8037.58",
-                    "platform": "Windows",
-                    "platformVersion": "10.0.0",
-                    "architecture": "x86",
-                    "model": "",
-                    "mobile": False,
-                    "bitness": "64",
-                    "wow64": False
-                }
+                "userAgent": _sp["user_agent"],
+                "platform":  "Win32",
+                "userAgentMetadata": _sp["ua_metadata"],
             })
-            page.send("Page.addScriptToEvaluateOnNewDocument", {"source": STEALTH_JS})
+            # Layer 1: puppeteer-extra stealth bundle (16 evasions)
+            if _sp["bundle_js"]:
+                page.send("Page.addScriptToEvaluateOnNewDocument", {"source": _sp["bundle_js"]})
+            # Layer 2: hardware / canvas / audio / TZ overrides matching real Chrome version
+            page.send("Page.addScriptToEvaluateOnNewDocument", {"source": _sp["hw_js"]})
         except Exception:
             pass
         return page
