@@ -356,6 +356,21 @@ class MuseEngine:
             f"--remote-debugging-port={self.cfg.cdp_port}",
             "--remote-allow-origins=*",
             f"--user-data-dir={self.cfg.profile_dir}",
+            # ---- RAM / process count reduction ----
+            "--disable-background-timer-throttling",
+            "--disable-backgrounding-occluded-windows",
+            "--disable-breakpad",             # no crashpad handler process
+            "--disable-client-side-phishing-detection",
+            "--disable-hang-monitor",
+            "--disable-ipc-flooding-protection",
+            "--disable-prompt-on-repost",
+            "--disable-renderer-backgrounding",
+            "--disable-sync",                 # no profile-sync network traffic
+            "--disable-translate",            # no translation service
+            "--metrics-recording-only",       # no UMA upload
+            "--no-pings",                     # no hyperlink ping requests
+            "--password-store=basic",         # skip OS keychain integration
+            "--use-mock-keychain",
             "about:blank",
         ]
         # Try to reuse an existing healthy CDP
@@ -660,7 +675,7 @@ class MuseEngine:
                     return True
             except Exception:
                 pass
-            time.sleep(0.08)
+            time.sleep(0.04)
         return False
 
     def reset_thread(self, for_chat: bool = False):
@@ -689,7 +704,7 @@ class MuseEngine:
                 self.page.send("Page.navigate", {"url": "https://muse.ai/thread/new"})
                 t_end = time.time() + 10.0
                 while time.time() < t_end:
-                    time.sleep(0.08)
+                    time.sleep(0.04)
                     ready = self.page.js("""(function(){
                         return document.readyState === 'complete'
                             && !!document.querySelector('textarea')
@@ -956,7 +971,7 @@ class MuseEngine:
             })()""")
         except Exception:
             pass
-        time.sleep(0.05)
+        time.sleep(0.015)
         rect = self.page.js(
             "(function(){"
             "var t=document.querySelector('textarea');"
@@ -975,7 +990,7 @@ class MuseEngine:
             self.page.send("Input.dispatchMouseEvent",
                            {"type": t, "x": c["x"], "y": c["y"],
                             "button": "left", "clickCount": 1})
-        time.sleep(0.03)
+        time.sleep(0.01)
 
         # Fire the React 18 prototype setter plus input/change events to sync the send-button state
         # (for 100KB+ huge contexts from DeepSeek/Codex etc., the prototype setter takes <1s; Input.insertText char-by-char would stall)
@@ -1009,7 +1024,7 @@ class MuseEngine:
             if res == "clicked":
                 clicked = "clicked"
                 break
-            time.sleep(0.08)
+            time.sleep(0.03)
 
         if clicked != "clicked":
             # Fallback: Ctrl+Enter or plain Enter
