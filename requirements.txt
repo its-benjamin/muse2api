@@ -1,5 +1,6 @@
 fastapi>=0.115
-uvicorn[standard]>=0.32
+uvicorn>=0.32
+zttp>=0.0.30  # only needed for experimental HTTP/2 (MUSE2API_HTTP2=1); safe to omit otherwise
 pydantic>=2.9
 requests>=2.32
 websocket-client>=1.8

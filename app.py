@@ -1,25 +1,25 @@
-"""muse2api — 把 Muse(muse.ai) 网页免费账号的对话/生图/生视频额度反代成 API。
+"""muse2api — reverse-proxies chat/image/video quotas of free Muse (muse.ai) web accounts into APIs.
 
-OpenAI 兼容:
-  POST /v1/chat/completions          （文本 / 代码对话，支持 stream，可接 Codex）
+OpenAI-compatible:
+  POST /v1/chat/completions          (text/code chat, streaming supported, Codex-compatible)
   POST /v1/images/generations
   POST /v1/videos  +  GET /v1/videos/{task_id}
   GET  /v1/models
   GET  /v1/media/{name}
 
-管理（前端账号池管理页面在 GET /）:
+Admin (account-pool admin UI at GET /):
   GET    /admin/status
   GET    /admin/accounts
-  POST   /admin/accounts            （单条 / 批量文本 / 批量数组）
-  PATCH  /admin/accounts/{id}       （改标签、启用/禁用）
+  POST   /admin/accounts            (single / batch text / batch array)
+  PATCH  /admin/accounts/{id}       (edit label, enable/disable)
   DELETE /admin/accounts/{id}
-  POST   /admin/accounts/{id}/test  （真实打开 muse.ai 验证会话是否有效）
+  POST   /admin/accounts/{id}/test  (actually opens muse.ai to verify the session)
   POST   /admin/accounts/{id}/relogin
-  GET    /admin/tasks               （任务记录）
+  GET    /admin/tasks               (task records)
   DELETE /admin/tasks/{id}  |  POST /admin/tasks/clear
-  GET    /admin/media               （媒体库）
-  GET    /admin/extension           （浏览器扩展 zip，用来取 cookie）
-  GET    /admin/cookie-helper       （命令行取 cookie 脚本，进阶）
+  GET    /admin/media               (media library)
+  GET    /admin/extension           (browser extension zip, for grabbing cookies)
+  GET    /admin/cookie-helper       (CLI cookie-fetch script, advanced)
 """
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse,
 from pydantic import BaseModel, Field
 
 from config import CFG
-from engine import ESSENTIAL_COOKIES, MuseAuthError, MuseEngine, MuseGenerationError
+from engine import ESSENTIAL_COOKIES, MuseAuthError, MuseEngine, MuseGenerationError, _is_elevated
 from store import Store, account_expiry, min_expiry
 
 import sys
@@ -59,12 +59,12 @@ if not log.handlers:
 CFG.ensure_dirs()
 app = FastAPI(title="muse2api", version="1.5.3")
 
-# Cookie 助手脚本从 muse.ai 页面发起导入请求，需要放行该来源；
-# 浏览器扩展从 chrome-extension:// 发起，也一并放行。
+# The cookie helper script submits import requests from muse.ai pages, so that origin must be allowed;
+# browser extensions posting from chrome-extension:// are allowed too.
 #
-# 这里直接放行所有来源：本服务用 Bearer Key 鉴权、不依赖 Cookie，
-# 放行来源不会带来越权风险；反之如果把来源限死，浏览器端的智能体
-# （Open WebUI / LobeChat / 各种 Web 客户端）会被 CORS 拦住用不了。
+# All origins are allowed here: this service authenticates with a Bearer key, not cookies,
+# so allowing origins adds no privilege-escalation risk; restricting origins would instead
+# break browser-based agents (Open WebUI / LobeChat / web clients) via CORS.
 _origins = [o.strip() for o in (CFG.cors_origins or "").split(",") if o.strip()]
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
@@ -82,10 +82,10 @@ IMAGE_TASK_LOCK = threading.Lock()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-# ------------------------- OpenAI 风格的错误响应 -------------------------
-# 各类智能体基本都按 OpenAI 的 {"error": {"message": ...}} 取错误信息；
-# FastAPI 默认返回的是 {"detail": ...}，客户端会读不到原因、只显示"未知错误"。
-# 所以 /v1/* 统一转成 OpenAI 格式，管理接口保持原样（前端依赖 detail）。
+# ------------------------- OpenAI-style error responses -------------------------
+# Most agents read the error message from OpenAI-style {"error": {"message": ...}};
+# FastAPI returns {"detail": ...} by default, which clients cannot read and show as "unknown error".
+# So /v1/* is normalized to the OpenAI shape; admin APIs stay as-is (the frontend relies on detail).
 def _err_type(status: int) -> str:
     if status == 404:
         return "not_found_error"
@@ -114,27 +114,27 @@ async def _http_exc(request: Request, exc: HTTPException):
 async def _validation_exc(request: Request, exc: RequestValidationError):
     if request.url.path.startswith("/v1/"):
         return JSONResponse(status_code=422, content={"error": {
-            "message": "请求参数校验失败：" + str(exc.errors())[:400],
+            "message": "Request validation failed: " + str(exc.errors())[:400],
             "type": "invalid_request_error", "param": None, "code": 422}})
     return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 MODELS = [
     {"id": "muse-spark", "object": "model", "owned_by": "muse",
-     "description": "Muse Spark —— 文本 / 代码对话（网页免费额度，支持流式）"},
+     "description": "Muse Spark -- text/code chat (free web quota, streaming supported)"},
     {"id": "muse-image", "object": "model", "owned_by": "muse",
-     "description": "Muse Image —— 文生图 / 图像编辑（网页免费额度）"},
+     "description": "Muse Image -- text-to-image / image editing (free web quota)"},
     {"id": "muse-video", "object": "model", "owned_by": "muse",
-     "description": "Muse Video —— 文生视频 / 图生视频（网页免费额度）"},
+     "description": "Muse Video -- text-to-video / image-to-video (free web quota)"},
 ]
 
-# 下游（Codex / Cline / 各种客户端）习惯按 OpenAI、Anthropic 的名字传模型，
-# 这里统一映射到 muse 的真实能力上。
+# Downstream clients (Codex / Cline / others) pass OpenAI- or Anthropic-style model names,
+# which are all mapped onto muse's real capabilities here.
 #
-# 说明：muse.ai 网页是自动路由的 agent，对外**没有可枚举的模型清单**，
-# 能稳定调用的就是三条真实能力 —— Muse Spark（语言/代码）、
-# Muse Image（生图）、Muse Video（生视频）。别名只是让下游不用改配置。
+# Note: the muse.ai web page is an auto-routing agent with **no enumerable model list**;
+# the only reliably callable capabilities are the three real ones -- Muse Spark (language/code),
+# Muse Image (image generation), Muse Video (video generation). Aliases just spare downstream config changes.
 MODEL_ALIASES = {
-    # ---- 文本 / 代码 → muse-spark ----
+    # ---- text / code -> muse-spark ----
     "muse-text": "muse-spark", "muse-chat": "muse-spark", "muse-llm": "muse-spark",
     "koda": "muse-spark",
     "gpt-3.5-turbo": "muse-spark", "gpt-4": "muse-spark", "gpt-4-turbo": "muse-spark",
@@ -150,10 +150,10 @@ MODEL_ALIASES = {
     "deepseek-chat": "muse-spark", "deepseek-coder": "muse-spark",
     "deepseek-reasoner": "muse-spark", "qwen-coder": "muse-spark",
     "gemini-2.5-pro": "muse-spark", "gemini-2.5-flash": "muse-spark",
-    # ---- 生图 → muse-image ----
+    # ---- image generation -> muse-image ----
     "muse-img": "muse-image", "dall-e": "muse-image", "dall-e-3": "muse-image",
     "gpt-image-1": "muse-image", "flux": "muse-image", "midjourney": "muse-image",
-    # ---- 生视频 → muse-video ----
+    # ---- video generation -> muse-video ----
     "muse-vid": "muse-video", "muse-videos": "muse-video",
     "sora": "muse-video", "sora-2": "muse-video", "veo": "muse-video",
     "veo-3": "muse-video", "kling": "muse-video", "runway": "muse-video",
@@ -165,24 +165,24 @@ def resolve_model(name: str | None, default: str = "muse-image") -> str:
     return MODEL_ALIASES.get(n, n or default)
 
 
-# ------------------------- 鉴权 -------------------------
+# ------------------------- Auth -------------------------
 def auth(authorization: str | None = Header(default=None)):
     if not CFG.api_key:
         return True
     if not authorization or not authorization.lower().startswith("bearer "):
-        raise HTTPException(401, "缺少 Authorization: Bearer <key>")
+        raise HTTPException(401, "Missing Authorization: Bearer <key>")
     parts = authorization.split(None, 1)
     token = parts[1].strip() if len(parts) > 1 else ""
     if not token or token != CFG.api_key:
-        raise HTTPException(401, "API key 无效")
+        raise HTTPException(401, "Invalid API key")
     return True
 
 
-# ------------------------- 请求模型 -------------------------
+# ------------------------- Request models -------------------------
 
 def _renew_and_persist(acc_id: str, wake_vm: bool = True, force: bool = False) -> dict | None:
-    """调用 /api/session 续签账号 cookie 并写回 store，返回最新账号 dict。
-    近期（10分钟内）已续签且状态正常的账号直接复用，避免每次请求阻塞 2~3 秒 HTTP 往返。"""
+    """Renew account cookies via /api/session, persist to the store, and return the fresh account dict.
+    Accounts renewed within the last 10 minutes with healthy status are reused directly, avoiding a 2-3s HTTP round trip per request."""
     acc = store.get_account(acc_id)
     if not acc or not acc.get("cookies"):
         return acc
@@ -203,20 +203,20 @@ def _renew_and_persist(acc_id: str, wake_vm: bool = True, force: bool = False) -
                                  cookies_exp=res.get("cookies_exp"),
                                  ok=True if res.get("ok") else acc.get("ok"),
                                  synced_at=int(now))
-            store.touch_keepalive(acc_id, True, f"会话正常 (VM: {res.get('vm_state') or 'RUNNING'})")
+            store.touch_keepalive(acc_id, True, f"Session healthy (VM: {res.get('vm_state') or 'RUNNING'})")
     except MuseAuthError as exc:
         store.mark(acc_id, False, str(exc))
         raise
     except Exception as exc:
-        log.warning("HTTP 预续签账号 %s 异常: %s", acc_id, exc)
+        log.warning("HTTP pre-renewal for account %s failed: %s", acc_id, exc)
     return store.get_account(acc_id)
 
 
 def safe_chat_stream(cookies: dict, prompt: str, expires: dict | None,
                      timeout: int, account_id: str | None):
-    """在独立线程中执行 chat_stream 并持有 GEN_LOCK，通过 Queue 往外吐。
-    无论下游客户端何时断连、异常或超时，stop_event + finally 块保证 100% 立即释放 GEN_LOCK，绝不死锁。
-    若首字前遇到单账号 VM 卡死或会话异常，自动切换下一个健康账号重试一次。"""
+    """Run chat_stream on a dedicated thread while holding GEN_LOCK, streaming chunks out via a Queue.
+    No matter when the downstream client disconnects, errors, or times out, stop_event + the finally block guarantee GEN_LOCK is released immediately -- never deadlocks.
+    If a single-account VM stall or session error hits before the first token, automatically fail over to the next healthy account and retry once."""
     import queue
     q = queue.Queue(maxsize=100)
     stop_event = threading.Event()
@@ -237,7 +237,7 @@ def safe_chat_stream(cookies: dict, prompt: str, expires: dict | None,
                     cur_id = alt["id"]
                     cur_cookies = alt["cookies"]
                     cur_exp = alt.get("cookies_exp")
-                    log.info("【对话自动切号】切换到备用账号 %s (%s) 重试...", alt.get("label"), cur_id)
+                    log.info("[chat auto-failover] Switching to standby account %s (%s), retrying...", alt.get("label"), cur_id)
                 yielded = False
                 try:
                     if cur_id:
@@ -333,10 +333,10 @@ class ChatMessage(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    """OpenAI Chat Completions 请求。
+    """OpenAI Chat Completions request.
 
-    对第三方客户端要尽量宽松：不认识字段一律忽略（Pydantic 默认行为），
-    只挑我们真正用得上的读 —— 否则各种智能体各传各的参数就会 422。
+    Be lenient toward third-party clients: ignore unknown fields (Pydantic default),
+    and only read what we actually use -- otherwise each agent passing its own params would 422.
     """
     model: str = "muse-spark"
     messages: list[ChatMessage] = []
@@ -344,8 +344,8 @@ class ChatRequest(BaseModel):
     temperature: float | None = None
     max_tokens: int | None = None
     timeout: int | None = None
-    prompt: str | None = None       # 兼容把 prompt 直接放顶层的客户端
-    # 下面这些声明出来只是为了「能读到」，muse.ai 端不做对应处理
+    prompt: str | None = None       # compat for clients that put prompt at the top level
+    # Declared below only so they can be read; the muse.ai side does not act on them
     tools: list | None = None
     tool_choice: object | None = None
     response_format: object | None = None
@@ -353,7 +353,7 @@ class ChatRequest(BaseModel):
 
 
 class ResponsesRequest(BaseModel):
-    """OpenAI Responses API（新版 Codex 默认走这个）。"""
+    """OpenAI Responses API (new Codex default)."""
     model: str = "muse-spark"
     input: str | list | None = None
     instructions: str | None = None
@@ -368,8 +368,8 @@ class AccountRequest(BaseModel):
     label: str = ""
     cookies: dict[str, str] = Field(default_factory=dict)
     cookie_header: str | None = None
-    batch: str | None = None          # 多行文本，每行一个账号
-    expires: dict[str, int] = Field(default_factory=dict)   # cookie 名 -> 过期时间戳
+    batch: str | None = None          # multi-line text, one account per line
+    expires: dict[str, int] = Field(default_factory=dict)   # cookie name -> expiry timestamp
 
 
 class AccountPatch(BaseModel):
@@ -377,41 +377,42 @@ class AccountPatch(BaseModel):
     enabled: bool | None = None
 
 
-# ------------------------- 提示词构造 -------------------------
+# ------------------------- Prompt construction -------------------------
+# NOTE: aspect-ratio keyword tuples keep Chinese aliases (竖屏/横屏/正方形) for backward compat with existing API callers. Do not remove during translation cleanup.
 def build_image_prompt(r: ImageRequest) -> str:
     has_ref = bool(r.reference_image or r.image or r.images)
     if has_ref:
-        parts = [f"基于我本次上传附带的参考图片进行生图/编辑：{r.prompt.strip()}"]
+        parts = [f"Using the attached reference image for image generation/editing: {r.prompt.strip()}"]
     else:
-        parts = [f"全新文生图创作（当前未提供任何参考图，请勿查找历史相册或向用户索要原图，直接根据文字描述从零绘制生成一张全新图片）：{r.prompt.strip()}"]
+        parts = [f"Brand-new text-to-image creation (no reference image provided; do not look up history albums or ask the user for a source image; draw one brand-new image from scratch from the text description): {r.prompt.strip()}"]
     ar = (r.aspect_ratio or "").strip().lower()
     sz = (r.size or "").strip().lower()
 
     if any(k in ar or k in sz for k in ("9:16", "9/16", "portrait", "竖屏", "720x1280", "1080x1920")):
-        parts.append("【画面构图与比例要求】：严格 9:16 竖屏满屏画幅（9:16 vertical portrait aspect ratio，高大于宽的手机全屏竖版画面），绝对不要生成横屏，保持垂直构图")
+        parts.append("[Composition and aspect-ratio requirement]: strict 9:16 vertical full-frame portrait (9:16 vertical portrait aspect ratio, phone fullscreen vertical frame taller than wide); never generate landscape, keep vertical composition")
     elif any(k in ar or k in sz for k in ("16:9", "16/9", "landscape", "横屏", "1280x720", "1920x1080")):
-        parts.append("【画面构图与比例要求】：16:9 宽屏横屏画幅（16:9 widescreen landscape aspect ratio）")
+        parts.append("[Composition and aspect-ratio requirement]: 16:9 widescreen landscape frame (16:9 widescreen landscape aspect ratio)")
     elif any(k in ar or k in sz for k in ("1:1", "square", "正方形", "1024x1024")):
-        parts.append("【画面构图与比例要求】：1:1 正方形画幅（1:1 square aspect ratio）")
+        parts.append("[Composition and aspect-ratio requirement]: 1:1 square frame (1:1 square aspect ratio)")
     elif any(k in ar or k in sz for k in ("4:3", "4/3")):
-        parts.append("【画面构图与比例要求】：4:3 比例画幅")
+        parts.append("[Composition and aspect-ratio requirement]: 4:3 aspect-ratio frame")
     elif any(k in ar or k in sz for k in ("3:4", "3/4")):
-        parts.append("【画面构图与比例要求】：3:4 竖向画幅")
+        parts.append("[Composition and aspect-ratio requirement]: 3:4 vertical frame")
     elif r.aspect_ratio:
-        parts.append(f"【画面构图与比例要求】：{r.aspect_ratio} 画面比例")
+        parts.append(f"[Composition and aspect-ratio requirement]: {r.aspect_ratio} aspect ratio")
     elif r.size:
-        parts.append(f"尺寸/比例：{r.size}")
+        parts.append(f"Size/ratio: {r.size}")
 
     if has_ref:
-        parts.append("【纯净画面要求】：彻底清除并去除参考图中的所有文字、水印、签名、角标及Logo标记（clean image without any watermark, text, or logo），输出绝对纯净无字画面")
+        parts.append("[Clean-frame requirement]: completely remove all text, watermarks, signatures, badges, and logo marks from the reference image (clean image without any watermark, text, or logo); output a perfectly clean text-free frame")
 
     if r.extra:
         parts.append(r.extra)
-    return "，".join(parts)
+    return ", ".join(parts)
 
 
 def _content_text(content) -> str:
-    """把 OpenAI 的 content 归一成纯文本（兼容多模态 list 形式）。"""
+    """Normalize OpenAI content into plain text (supports multimodal list form)."""
     if content is None:
         return ""
     if isinstance(content, str):
@@ -424,7 +425,7 @@ def _content_text(content) -> str:
                 if t in (None, "text", "input_text", "output_text"):
                     parts.append(str(item.get("text") or ""))
                 elif t == "image_url":
-                    parts.append("[图片]")
+                    parts.append("[image]")
             elif isinstance(item, str):
                 parts.append(item)
         return "\n".join(p for p in parts if p)
@@ -432,25 +433,25 @@ def _content_text(content) -> str:
 
 
 def build_chat_prompt(messages: list[ChatMessage]) -> str:
-    """把 messages 拼成发给 muse.ai 的一段提示词。
+    """Join messages into one prompt for muse.ai.
 
-    muse.ai 网页本身是个带上下文的会话，但本 API 是无状态的（每次可能落到
-    不同账号/页面），所以把历史拼进 prompt 最可控 —— 这正好匹配 Codex 这类
-    「每轮都带全量历史」的客户端。
+    The muse.ai web page is itself a contextual session, but this API is stateless (each call may land on
+    a different account/page), so inlining history into the prompt is the most controllable -- which matches
+    Codex-style clients that send full history every round.
     """
     system, turns = [], []
     for m in messages:
         role = (m.role or "").strip().lower()
         text = _content_text(m.content).strip()
         if role == "tool":
-            # 工具执行结果 → 当成"用户提供的信息"发过去
+            # Tool result -> forward as "user-provided information"
             if text:
-                turns.append(("user", "【工具执行结果】\n" + text))
+                turns.append(("user", "[Tool result]\n" + text))
             continue
         if not text:
-            # 部分客户端的 assistant 消息只带 tool_calls、没有正文
+            # Some clients send assistant messages with only tool_calls and no body text
             if role == "assistant" and m.tool_calls:
-                turns.append(("assistant", "【请求调用工具】" + json.dumps(
+                turns.append(("assistant", "[Requesting tool call]" + json.dumps(
                     m.tool_calls, ensure_ascii=False)[:600]))
             continue
         if role in ("system", "developer"):
@@ -458,7 +459,7 @@ def build_chat_prompt(messages: list[ChatMessage]) -> str:
         else:
             turns.append((role, text))
 
-    # 单轮且无系统指令 → 直接发原文，最贴近自然对话
+    # Single turn with no system instructions -> send the raw text, closest to natural chat
     if len(turns) == 1 and not system and turns[0][0] == "user":
         return turns[0][1]
 
@@ -466,56 +467,56 @@ def build_chat_prompt(messages: list[ChatMessage]) -> str:
     if system:
         sys_text = "\n\n".join(system)
         sys_text = sys_text.replace("danger-full-access", "standard-workspace-access")
-        parts.append(f"背景与任务设定：\n{sys_text}")
+        parts.append(f"Background and task setup:\n{sys_text}")
     for role, text in turns:
-        label = "助手" if role == "assistant" else "用户"
-        parts.append(f"{label}：\n{text}")
+        label = "assistant" if role == "assistant" else "user"
+        parts.append(f"{label}:\n{text}")
     return "\n\n".join(parts)
 
 
-# ------------------------- 工具调用（function calling）适配 -------------------------
-# muse.ai 的网页模型**不会**返回结构化的 tool_calls，所以这里做一层协议适配：
-#   1) 请求带 tools 时，把工具定义翻译成提示词里的【工具调用协议】；
-#   2) 模型按协议输出 ```json {"tool": "...", "arguments": {...}} ```；
-#   3) 我们把这段解析回 OpenAI 的 tool_calls 交给下游 agent。
+# ------------------------- Tool-calling (function calling) adapter -------------------------
+# The muse.ai web model **never** returns structured tool_calls, so this layer adapts the protocol:
+#   1) when the request carries tools, translate the tool definitions into a [Tool-calling protocol] prompt section;
+#   2) the model outputs ```json {"tool": "...", "arguments": {...}} ``` per the protocol;
+#   3) we parse that back into OpenAI tool_calls for the downstream agent.
 #
-# 注意：这是"尽力适配"而非保证 —— 目标模型是通用对话模型，没有针对
-# function calling 做微调，遵守协议的程度需要实测观察。
-_TOOL_PROTOCOL_HEAD = """你可以根据需要调用以下工具来协助用户完成任务。
-若需调用工具，请直接输出如下格式的 JSON 代码块（不要包含其他多余解释）：
+# Note: this is "best-effort adaptation", not a guarantee -- the target model is a general chat model without
+# function-calling fine-tuning; protocol compliance needs empirical observation.
+_TOOL_PROTOCOL_HEAD = """You may call the following tools to help complete the user task.
+If you need to call a tool, output a JSON code block in exactly this shape (with no extra explanation):
 ```json
-{"name": "<工具名>", "arguments": {<参数>}}
+{"name": "<tool name>", "arguments": {<params>}}
 ```
-如果需要调用多个工具，请输出包含多个对象的 JSON 数组。
-如果无需调用工具，请直接用自然语言回答。
+To call multiple tools, output a JSON array of such objects.
+If no tool is needed, just answer in natural language.
 
-可用工具列表：
+Available tools:
 """
 
 
 def _describe_params(params) -> str:
-    """把 JSON Schema 的参数描述成易读的多行文本。"""
+    """Describe JSON Schema params as readable multi-line text."""
     if not isinstance(params, dict):
-        return "      （无参数）"
+        return "      (no params)"
     props = params.get("properties") or {}
     required = set(params.get("required") or [])
     if not props:
-        return "      （无参数）"
+        return "      (no params)"
     lines = []
     for name, spec in props.items():
         spec = spec if isinstance(spec, dict) else {}
         lines.append("      - %s (%s, %s)%s" % (
             name, spec.get("type") or "any",
-            "必填" if name in required else "可选",
+            "required" if name in required else "optional",
             (" " + spec["description"]) if spec.get("description") else ""))
     return "\n".join(lines)
 
 
 def build_tools_prompt(tools: list | None) -> str:
-    """把 tools 定义翻译成提示词片段（没有工具时返回空串）。
+    """Translate tool definitions into a prompt fragment (empty string when no tools).
 
-    同时兼容 Chat Completions 的 `{"type":"function","function":{...}}`
-    和 Responses API 的 `{"type":"function","name":...,"parameters":...}`。
+    Supports both Chat Completions `{"type":"function","function":{...}}`
+    and Responses API `{"type":"function","name":...,"parameters":...}`.
     """
     if not tools:
         return ""
@@ -527,7 +528,7 @@ def build_tools_prompt(tools: list | None) -> str:
         if not fn.get("name"):
             continue
         desc = fn.get("description") or ""
-        items.append("%d. %s%s\n   参数：\n%s" % (
+        items.append("%d. %s%s\n   params:\n%s" % (
             len(items) + 1, fn["name"], (" — " + desc) if desc else "",
             _describe_params(fn.get("parameters"))))
     if not items:
@@ -539,7 +540,7 @@ _FENCE_RE = re.compile(r"```(?:json|JSON)?\s*([\s\S]*?)```")
 
 
 def _as_tool_calls(obj) -> list[dict] | None:
-    """把解析出的 JSON 转成 OpenAI tool_calls；不像工具调用就返回 None。"""
+    """Convert parsed JSON into OpenAI tool_calls; returns None when it does not look like a tool call."""
     raw = obj if isinstance(obj, list) else [obj]
     if not raw:
         return None
@@ -561,13 +562,13 @@ def _as_tool_calls(obj) -> list[dict] | None:
 
 
 def parse_tool_calls(text: str) -> tuple[list[dict] | None, str]:
-    """从模型输出里抽出工具调用。
+    """Extract tool calls from model output.
 
-    返回 (tool_calls, 剩余文本)；抽不到就返回 (None, 原文)。
-    支持多种形态：
-    1) ```json ... ``` 代码块；
-    2) 裸 JSON（或带有前导 json/JSON 关键字）；
-    3) 文本中内嵌的完整 JSON 对象或数组。
+    Returns (tool_calls, remaining text); (None, original) when none found.
+    Supported shapes:
+    1) ```json ... ``` fenced block;
+    2) bare JSON (optionally prefixed with json/JSON);
+    3) a complete JSON object/array embedded in text.
     """
     if not text:
         return None, text
@@ -616,68 +617,201 @@ def build_video_prompt(r: VideoRequest) -> str:
     parts = []
     if is_vertical:
         if has_ref:
-            parts.append(f"基于我本次上传的参考图片附件作为第一帧参考图（严禁使用历史图片或任何其他图像，必须严格以我当前刚刚上传并附带在此处的这张图片为起始帧）：生成一个严格9:16竖屏手机满屏的动态图生视频（9:16 vertical portrait video，720x1280，高大于宽的手机全屏竖版画面，严格以附带的参考图为起始第一帧延续动作，严禁生成横屏或黑边，时长严格为 {dur} 秒）：{user_prompt}")
+            parts.append(f"Use the reference image attached with this upload as the first-frame reference (strictly start from the image just uploaded here, never history or other images): generate a strict 9:16 vertical fullscreen phone image-to-video (9:16 vertical portrait video, 720x1280, taller-than-wide fullscreen phone frame, continuing motion from the attached reference as first frame; never landscape or letterboxed; exactly {dur} seconds): {user_prompt}")
         else:
-            parts.append(f"全新文生视频创作（纯文本全新生成，严禁参考任何历史图片或上下文）：生成一个严格9:16竖屏手机满屏视频（9:16 vertical portrait video，720x1280，高大于宽的手机全屏竖版画面，严禁生成横屏或带有左右黑边，保持垂直构图，时长严格为 {dur} 秒）：{user_prompt}")
+            parts.append(f"Brand-new text-to-video (pure-text fresh generation; never reference history images or context): strict 9:16 vertical fullscreen phone video (9:16 vertical portrait video, 720x1280, taller-than-wide fullscreen phone frame; never landscape or letterboxed; vertical composition; exactly {dur} seconds): {user_prompt}")
     elif any(k in ar or k in sz for k in ("16:9", "16/9", "landscape", "横屏", "1280x720", "1920x1080")):
         if has_ref:
-            parts.append(f"基于我本次上传的参考图片附件作为第一帧参考图（严禁使用历史图片或任何其他图像，必须严格以我当前刚刚上传并附带在此处的这张图片为起始帧）：生成一个16:9宽屏横屏图生视频（16:9 widescreen landscape video，严格以附带的参考图为起始第一帧延续动作，时长严格为 {dur} 秒）：{user_prompt}")
+            parts.append(f"Use the reference image attached with this upload as the first-frame reference (strictly start from the image just uploaded here, never history or other images): generate a 16:9 widescreen landscape image-to-video (16:9 widescreen landscape video, continuing motion from the attached reference as first frame; exactly {dur} seconds): {user_prompt}")
         else:
-            parts.append(f"全新文生视频创作（纯文本全新生成，严禁参考任何历史图片或上下文）：生成一个16:9横屏宽屏视频（16:9 widescreen landscape video，时长严格为 {dur} 秒）：{user_prompt}")
+            parts.append(f"Brand-new text-to-video (pure-text fresh generation; never reference history images or context): 16:9 landscape widescreen video (16:9 widescreen landscape video; exactly {dur} seconds): {user_prompt}")
     else:
         if has_ref:
-            parts.append(f"基于我本次上传的参考图片附件作为第一帧参考图（严禁使用历史图片或任何其他图像，必须严格以我当前刚刚上传并附带在此处的这张图片为起始帧）：生成动态图生视频（严格以附带的参考图为起始第一帧延续动作，时长严格为 {dur} 秒）：{user_prompt}")
+            parts.append(f"Use the reference image attached with this upload as the first-frame reference (strictly start from the image just uploaded here, never history or other images): image-to-video continuing motion from the attached reference as first frame (exactly {dur} seconds): {user_prompt}")
         else:
-            parts.append(f"全新文生视频创作（纯文本全新生成，严禁参考任何历史图片或上下文）：生成一个视频（时长严格为 {dur} 秒）：{user_prompt}")
+            parts.append(f"Brand-new text-to-video (pure-text fresh generation; never reference history images or context): generate a video (exactly {dur} seconds): {user_prompt}")
 
     if r.resolution:
-        parts.append(f"画质规格：{r.resolution}")
+        parts.append(f"Quality spec: {r.resolution}")
     if r.extra:
         parts.append(r.extra)
-    return "，".join(parts)
+    return ", ".join(parts)
 
 
 def media_url(name: str) -> str:
-    """媒体地址。
+    """Media URL.
 
-    配了 public_base 就返回**绝对 URL** —— OpenAI 兼容客户端（以及各类智能体
-    平台）拿到 data[].url 后一般会直接渲染或下载，相对路径会被解析到客户端
-    自己的域名上，导致 404。public_base 为空时退回相对路径。
+    When public_base is set, return an **absolute URL** -- OpenAI-compatible clients (and agent
+    platforms) generally render or download data[].url directly; a relative path would resolve against
+    the client's own domain and 404. Fall back to a relative path when public_base is empty.
     """
     base = _public_base()
     return f"{base}/v1/media/{name}" if base else f"/v1/media/{name}"
 
 
-# ------------------------- cookie 解析 -------------------------
-def parse_cookie_text(text: str) -> dict[str, str]:
-    """把 `a=1; b=2` / JSON / Set-Cookie 行解析成 dict。"""
+# ------------------------- Cookie parsing -------------------------
+def parse_cookie_payload(text: str) -> tuple[dict[str, str], dict[str, int]]:
+    """Parse cookies and optional expiration timestamps from diverse formats:
+    1. Netscape HTTP Cookie File (cookies.txt format, including #HttpOnly_ prefixes and tab/space columns)
+    2. Firefox / Chrome DevTools inspect element JSON (e.g. {"Request Cookies": {...}} or raw cookie dicts)
+    3. JSON array of objects (HAR format or [{name: ..., value: ..., expires: ...}])
+    4. Copied text with ANSI terminal escape sequences or bracket artifacts ([13;28;13;1;0;1_...)
+    5. Standard HTTP headers (`Cookie: a=1; b=2`, Set-Cookie headers)
+    """
     text = (text or "").strip()
     if not text:
-        return {}
-    if text.startswith("{"):
-        import json
-        try:
-            obj = json.loads(text)
-            if isinstance(obj, dict):
-                return {str(k): str(v) for k, v in obj.items()}
-        except Exception:  # noqa: BLE001
-            pass
-    out: dict[str, str] = {}
+        return {}, {}
+
+    import urllib.parse
+
+    # 0. Terminal copypasta recovery:
+    # Terminals (conpty/mintty/tmux) emit control escapes like:
+    # - [13;28;..._ for Carriage Return / Newline (ASCII 13)
+    # - [9;15;..._ for Tab (ASCII 9)
+    # We map them back to actual newlines and tabs, then strip any remaining [x;y;z_ markers.
+    text = re.sub(r"\[13(?:;\d+)*_", "\n", text)
+    text = re.sub(r"\[9(?:;\d+)*_", "\t", text)
+    text = re.sub(r"\x1b\[[0-9;]*[a-zA-Z]", "", text)
+    text = re.sub(r"\[\d+(?:;\d+)*_", "", text)
+
+    cookies: dict[str, str] = {}
+    expires: dict[str, int] = {}
+
+    # 1. Netscape cookies.txt format
+    lines = text.splitlines()
+    has_netscape = False
+    for line in lines:
+        raw_l = line.strip()
+        if not raw_l:
+            continue
+        if raw_l.startswith("# Netscape") or raw_l.startswith("# https:") or raw_l.startswith("# This is") or raw_l.startswith("# HTTP Cookie File"):
+            has_netscape = True
+            continue
+        if raw_l.startswith("#HttpOnly_"):
+            raw_l = raw_l[len("#HttpOnly_"):].strip()
+        elif raw_l.startswith("#"):
+            continue
+        parts = re.split(r"\t+|\s{2,}", raw_l)
+        if len(parts) >= 7:
+            has_netscape = True
+            name = parts[5].strip()
+            val = urllib.parse.unquote(parts[6].strip())
+            if name:
+                cookies[name] = val
+                try:
+                    exp_val = int(parts[4].strip())
+                    if exp_val > 0:
+                        expires[name] = exp_val
+                except (ValueError, TypeError):
+                    pass
+    if has_netscape and cookies:
+        return cookies, expires
+
+    # 2. JSON / Firefox inspect element
+    trimmed = text.strip()
+    if trimmed.lower().startswith("cookie:"):
+        trimmed = trimmed[7:].strip()
+
+    if "{" in trimmed or "[" in trimmed:
+        for candidate in [trimmed, re.search(r"(\{[\s\S]*\}|\[[\s\S]*\])", trimmed)]:
+            cand_str = candidate.group(0) if hasattr(candidate, "group") else candidate
+            if not cand_str:
+                continue
+            try:
+                import json
+                obj = json.loads(cand_str)
+                def extract(o):
+                    if isinstance(o, dict):
+                        for k in ("Request Cookies", "requestCookies", "cookies", "Cookies"):
+                            if k in o and isinstance(o[k], (dict, list)):
+                                return extract(o[k])
+                        for k, v in o.items():
+                            if isinstance(v, (dict, list)):
+                                extract(v)
+                            else:
+                                cookies[str(k).strip()] = urllib.parse.unquote(str(v).strip())
+                    elif isinstance(o, list):
+                        for item in o:
+                            if isinstance(item, dict):
+                                if "name" in item and "value" in item:
+                                    name = str(item["name"]).strip()
+                                    cookies[name] = urllib.parse.unquote(str(item["value"]).strip())
+                                    for ek in ("expires", "expirationDate", "expiry"):
+                                        if ek in item:
+                                            try:
+                                                exp_v = int(float(item[ek]))
+                                                if exp_v > 0:
+                                                    expires[name] = exp_v
+                                            except (ValueError, TypeError):
+                                                pass
+                                else:
+                                    extract(item)
+                extract(obj)
+                if cookies:
+                    return cookies, expires
+            except Exception:
+                pass
+
+    # 3. Fallback: regex for JSON key-value pairs (e.g. malformed JSON or unescaped quotes)
+    json_pairs = re.findall(r'\"([a-zA-Z0-9_\-\.]+)\"\s*:\s*\"([^\"]*)\"', text)
+    if json_pairs:
+        keys = [k for k, v in json_pairs if k not in ("Request Cookies", "requestCookies", "cookies", "Cookies")]
+        if any(c in keys for c in ("hatch_sess", "hatch_gw", "hatch_vml", "hatch_native_auth_device", "datr", "dpr")):
+            for k, v in json_pairs:
+                if k not in ("Request Cookies", "requestCookies", "cookies", "Cookies"):
+                    cookies[k] = urllib.parse.unquote(v)
+            return cookies, expires
+
+    # 4. Standard HTTP header (Cookie: a=1; b=2) or Set-Cookie lines
     for part in re.split(r"[;\n]+", text):
         part = part.strip()
-        if not part or "=" not in part:
+        if not part:
+            continue
+        if part.lower().startswith("cookie:"):
+            part = part[7:].strip()
+        if part.lower().startswith("set-cookie:"):
+            part = part[11:].strip()
+        if "=" not in part:
             continue
         k, v = part.split("=", 1)
         k = k.strip()
+        if k.lower() in ("path", "domain", "expires", "max-age", "samesite", "secure", "httponly"):
+            continue
         if k:
-            out[k] = v.strip()
-    return out
+            cookies[k] = urllib.parse.unquote(v.strip())
+    return cookies, expires
 
 
-def parse_batch(text: str) -> list[tuple[str, dict]]:
-    """批量导入：每行 `标签 | cookie串`，标签可省略。"""
-    out: list[tuple[str, dict]] = []
-    for raw in (text or "").splitlines():
+def parse_cookie_text(text: str) -> dict[str, str]:
+    """Parse `a=1; b=2` / JSON / Firefox DevTools / cookies.txt / Set-Cookie into a dict."""
+    return parse_cookie_payload(text)[0]
+
+
+def parse_batch(text: str) -> list[tuple[str, dict, dict]]:
+    """Batch import: one `label | cookie-string` per line (label optional).
+    Also transparently detects if the entire text is a single multi-line cookies.txt file
+    or Firefox DevTools JSON object and parses it as a single account."""
+    raw_text = (text or "").strip()
+    if not raw_text:
+        return []
+
+    raw_text = re.sub(r"\[13(?:;\d+)*_", "\n", raw_text)
+    raw_text = re.sub(r"\[9(?:;\d+)*_", "\t", raw_text)
+    raw_text = re.sub(r"\x1b\[[0-9;]*[a-zA-Z]", "", raw_text)
+    raw_text = re.sub(r"\[\d+(?:;\d+)*_", "", raw_text)
+    lines = [l.strip() for l in raw_text.splitlines() if l.strip() and not l.strip().startswith("#")]
+
+    # Check if this is an explicit multi-account batch format (lines containing 'label | cookie')
+    has_explicit_batch = any("|" in l and "=" not in l.split("|", 1)[0] for l in lines)
+
+    if not has_explicit_batch:
+        # Check if the entire payload parses as a unified single account
+        single_c, single_e = parse_cookie_payload(raw_text)
+        if single_c:
+            return [("", single_c, single_e)]
+
+    out: list[tuple[str, dict, dict]] = []
+    for raw in raw_text.splitlines():
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
@@ -685,24 +819,24 @@ def parse_batch(text: str) -> list[tuple[str, dict]]:
         body = line
         if "|" in line:
             head, tail = line.split("|", 1)
-            if "=" not in head:          # `|` 出现在 cookie 里时不算分隔符
+            if "=" not in head:          # a `|` inside a cookie value is not a separator
                 label, body = head.strip(), tail.strip()
-        cookies = parse_cookie_text(body)
-        if cookies:
-            out.append((label, cookies))
+        c, e = parse_cookie_payload(body)
+        if c:
+            out.append((label, c, e))
     return out
 
 
-# ------------------------- 核心生成 -------------------------
+# ------------------------- Core generation -------------------------
 def _sync_cookies(acc_id: str) -> dict:
-    """生成完从浏览器读回 cookie 并写回账号池。
+    """Read cookies back from the browser after generation and persist them to the pool.
 
-    实测结论：**核心 cookie 的 expires 不会被使用行为续期**（hatch_vml 固定
-    约 2 天就到期），这里同步回来的主要是那些每次访问都会重新下发的非核心
-    cookie（_fbp / wd / dpr 等）以及可能新增的条目，避免账号信息比实际更旧。
+    Measured result: **core-cookie expires is NOT extended by usage** (hatch_vml expires after a fixed
+    ~2 days); what gets synced back here is mostly the non-core cookies re-issued on every visit
+    (_fbp / wd / dpr etc.) plus any newly added entries, keeping account data from going stale.
 
-    注意：这个函数**绝不能把生成结果搞失败** —— 生成已经成功了，
-    同步只是锦上添花，出任何问题都只记一条日志。
+    Note: this function must **never fail the generation** -- generation already succeeded;
+    syncing is best-effort, so any problem only logs one line.
     """
     try:
         live = engine.read_cookies()
@@ -713,8 +847,8 @@ def _sync_cookies(acc_id: str) -> dict:
             return {"synced": 0}
         cur = dict(acc.get("cookies") or {})
         new_vals = {k: v["value"] for k, v in live.items() if v.get("value")}
-        # 有效期要「合并」而不是「覆盖」：会话 cookie 读回的 expires 是 -1，
-        # 若整体覆盖会把原有有效期记录清空（实测踩过这个坑）。
+        # Merge expiries instead of overwriting: session cookies read back with expires of -1,
+        # and a wholesale overwrite would wipe the recorded expiries (learned the hard way).
         exps = dict(acc.get("cookies_exp") or {})
         exps.update({k: v["expires"] for k, v in live.items()
                      if _pos(v.get("expires"))})
@@ -725,7 +859,7 @@ def _sync_cookies(acc_id: str) -> dict:
         return {"synced": len(new_vals), "changed": changed,
                 "expires_at": updated.get("expires_at")}
     except Exception as exc:  # noqa: BLE001
-        log.warning("cookie 同步失败（不影响本次生成）: %s", exc)
+        log.warning("Cookie sync failed (generation unaffected): %s", exc)
         return {"synced": 0, "error": str(exc)[:200]}
 
 
@@ -742,7 +876,7 @@ def _run_generation(prompt: str, kind: str, timeout: int,
     # Browser ownership covers account selection, retry and cleanup, not just generate().
     deadline = time.monotonic() + max(1, timeout)
     if not GEN_LOCK.acquire(timeout=max(1, timeout)):
-        raise MuseGenerationError("等待浏览器队列超时，请稍后重试")
+        raise MuseGenerationError("Browser queue wait timed out; please retry later")
     try:
         return _run_generation_locked(prompt, kind, timeout, account_id,
                                       on_progress, reference_image, deadline=deadline)
@@ -759,21 +893,21 @@ def _run_generation_locked(prompt: str, kind: str, timeout: int,
     if not acc:
         acc = store.pick_account(rotate=True, preferred_id=getattr(engine, "current_acc_id", None))
     if not acc:
-        raise MuseAuthError("没有可用账号，请先在管理页面导入 cookie")
+        raise MuseAuthError("No available accounts; import cookies on the admin page first")
 
     last_exc = None
     cur_acc = acc
     for attempt in range(2):
         if deadline is not None and time.monotonic() >= deadline:
-            raise MuseGenerationError("任务总等待时限已到，停止重试")
+            raise MuseGenerationError("Total task wait budget exhausted; stopping retries")
         if attempt > 0:
-            if last_exc and "未产出媒体附件，仅返回了文本回复" in str(last_exc):
+            if last_exc and "Model returned only text, no media" in str(last_exc):
                 break
             alt = store.pick_account(rotate=True, force_rotate=True, exclude_id=cur_acc["id"])
             if not alt or alt["id"] == cur_acc["id"]:
                 break
             cur_acc = alt
-            log.info("【生图/视频自动切号】切换到备用账号 %s (%s) 重试...", cur_acc.get("label"), cur_acc["id"])
+            log.info("[image/video auto-failover] Switching to standby account %s (%s), retrying...", cur_acc.get("label"), cur_acc["id"])
         try:
             refreshed = _renew_and_persist(cur_acc["id"], wake_vm=True, force=(attempt > 0))
             if refreshed:
@@ -781,7 +915,7 @@ def _run_generation_locked(prompt: str, kind: str, timeout: int,
             engine.start()
             remaining = int(deadline - time.monotonic()) if deadline is not None else timeout
             if remaining <= 0:
-                raise MuseGenerationError("任务总等待时限已到，停止重试")
+                raise MuseGenerationError("Total task wait budget exhausted; stopping retries")
             res = engine.generate(cur_acc["cookies"], prompt, expect=kind,
                                   timeout=remaining, expires=cur_acc.get("cookies_exp"),
                                   account_id=cur_acc["id"], on_progress=on_progress,
@@ -795,18 +929,18 @@ def _run_generation_locked(prompt: str, kind: str, timeout: int,
             engine.stop()
         except MuseGenerationError as exc:
             last_exc = exc
-            store.mark(cur_acc["id"], True, f"任务异常: {str(exc)[:60]}")
+            store.mark(cur_acc["id"], True, f"Task error: {str(exc)[:60]}")
             try:
                 engine.reset_thread()
             except Exception:
                 pass
         except Exception as exc:  # noqa: BLE001
             engine.stop()
-            last_exc = MuseGenerationError(f"生成失败: {exc}")
+            last_exc = MuseGenerationError(f"Generation failed: {exc}")
     raise last_exc
 
 
-# ------------------------- 基础接口 -------------------------
+# ------------------------- Basic endpoints -------------------------
 @app.get("/healthz")
 def healthz():
     return {"status": "ok", "time": int(time.time())}
@@ -825,7 +959,7 @@ def models(_=Depends(auth)):
     return {"object": "list", "data": MODELS}
 
 
-# ------------------------- 生图 -------------------------
+# ------------------------- Image generation -------------------------
 def _image_response(req: ImageRequest, res: dict) -> dict:
     item = {"revised_prompt": req.prompt, "url": media_url(res["filename"]),
             "size": req.size or "auto", "kind": res["kind"], "bytes": res["size"]}
@@ -908,7 +1042,7 @@ def create_image_task(req: ImageRequest,
 def get_image_task(task_id: str, _=Depends(auth)):
     task = store.get_task(task_id)
     if not task or task.get("kind") != "image":
-        raise HTTPException(404, "image task 不存在")
+        raise HTTPException(404, "image task not found")
     out = dict(task)
     if out.get("status") == "completed":
         req = ImageRequest(prompt=out["prompt"], size=out.get("size"),
@@ -941,7 +1075,7 @@ async def images_generations(req: ImageRequest, _=Depends(auth)):
 
 @app.post("/v1/images/edits")
 async def images_edits(request: Request, _=Depends(auth)):
-    """OpenAI 兼容的图生图/图像编辑接口，兼容 multipart/form-data 与 application/json。"""
+    """OpenAI-compatible image-to-image / image-edit endpoint; supports multipart/form-data and application/json."""
     content_type = request.headers.get("content-type", "").lower()
     prompt = ""
     model = "muse-image"
@@ -997,7 +1131,7 @@ async def images_edits(request: Request, _=Depends(auth)):
             ref_image_data = body.get("reference_image") or body.get("image_url")
 
     if not prompt:
-        prompt = "参考此图片并进行生图创作"
+        prompt = "Generate an image from this reference picture"
 
     req_obj = ImageRequest(
         prompt=prompt,
@@ -1023,7 +1157,7 @@ async def images_edits(request: Request, _=Depends(auth)):
     return _image_response(req_obj, res)
 
 
-# ------------------------- 生视频（异步任务） -------------------------
+# ------------------------- Video generation (async tasks) -------------------------
 @app.post("/v1/videos")
 @app.post("/v1/videos/generations")
 async def create_video(req: VideoRequest, _=Depends(auth)):
@@ -1071,7 +1205,7 @@ async def create_video(req: VideoRequest, _=Depends(auth)):
 def get_video(task_id: str, _=Depends(auth)):
     t = store.get_task(task_id)
     if not t:
-        raise HTTPException(404, "task 不存在")
+        raise HTTPException(404, "task not found")
     out = dict(t)
     status = out.get("status")
     if status in ("succeeded", "success", "done"):
@@ -1092,7 +1226,7 @@ def get_video(task_id: str, _=Depends(auth)):
     return out
 
 
-# ------------------------- 对话（OpenAI 兼容） -------------------------
+# ------------------------- Chat (OpenAI-compatible) -------------------------
 def _sse(obj: dict) -> str:
     return "data: " + json.dumps(obj, ensure_ascii=False) + "\n\n"
 
@@ -1105,9 +1239,9 @@ def _chat_chunk(cid: str, created: int, model: str, delta: dict,
 
 
 def _want_usage(stream_options) -> bool:
-    """下游（LangChain、部分 SDK / 智能体框架）会带
-    `stream_options.include_usage=true`，要求在 [DONE] 之前补一个
-    `choices: []` + `usage` 的分片。不发的话少数框架会一直等 usage 而卡住。"""
+    """Downstream clients (LangChain, some SDKs / agent frameworks) send
+    `stream_options.include_usage=true`, requiring one extra chunk before [DONE] with
+    empty `choices: []` plus `usage`. Without it a few frameworks wait for usage forever."""
     if isinstance(stream_options, dict):
         return bool(stream_options.get("include_usage"))
     return False
@@ -1138,34 +1272,34 @@ _SSE_HEADERS = {
 
 @app.post("/v1/chat/completions")
 async def chat_completions(req: ChatRequest, _=Depends(auth)):
-    """OpenAI 兼容的对话接口 —— 各类智能体客户端都能接。
+    """OpenAI-compatible chat endpoint -- any agent client can connect.
 
-    说明：muse.ai 网页是**自动路由**的 agent，界面上没有模型选择器，所有请求
-    都会落到同一个网页助手（自称 Koda，底层是 Muse 系列语言模型）。所以
-    `model` 字段只用于兼容下游，不影响路由结果。
+    Note: the muse.ai web page is an **auto-routing** agent with no model picker; every request
+    lands on the same web assistant (calling itself Koda, backed by Muse-series language models). So the
+    `model` field only keeps downstream compatibility and does not affect routing.
 
-    请求带 `tools` 时，会注入【工具调用协议】并把模型输出的 JSON 解析回
-    `tool_calls`（muse.ai 没有原生 function calling，这层属于协议适配）。
+    When the request carries `tools`, a [Tool-calling protocol] section is injected and the model's JSON output
+    is parsed back into `tool_calls` (muse.ai has no native function calling; this layer is a protocol adapter).
 
-    对话与生图/生视频共用同一个浏览器实例，靠 `GEN_LOCK` 串行。
+    Chat shares one browser instance with image/video generation, serialized via `GEN_LOCK`.
     """
     prompt = build_chat_prompt(req.messages) or (req.prompt or "").strip()
     if not prompt:
-        raise HTTPException(400, "messages 为空")
+        raise HTTPException(400, "messages is empty")
 
-    # 工具调用协议默认不注入 —— 实测 muse.ai 的助手会明确拒绝输出"伪工具调用"，
-    # 注入反而污染正常回答；详见 config.py 的 tool_protocol 注释。
+    # The tool-calling protocol is not injected by default -- the muse.ai assistant explicitly refuses "pseudo tool call" output,
+    # and injecting it only pollutes normal answers; see the tool_protocol comment in config.py.
     tool_note = build_tools_prompt(req.tools) if CFG.tool_protocol else ""
     if tool_note:
-        # 放在末尾：开头是 agent 自己的 system 提示，夹在中间容易被忽略；
-        # 紧贴用户消息之前，模型对末尾指令的遵守度明显更高。
+        # Placed at the end: the beginning is the agent's own system prompt; sandwiched in the middle it gets ignored;
+        # right before the user message, the model follows trailing instructions much better.
         prompt = prompt + "\n\n" + tool_note
 
     model = resolve_model(req.model, default="muse-spark")
     timeout = int(req.timeout or CFG.chat_timeout)
     acc = store.pick_account(rotate=True, preferred_id=getattr(engine, "current_acc_id", None))
     if not acc:
-        raise HTTPException(400, "没有可用账号，请先在管理页面导入 cookie")
+        raise HTTPException(400, "No available accounts; import cookies on the admin page first")
 
     cid = "chatcmpl-" + uuid.uuid4().hex[:24]
     created = int(time.time())
@@ -1174,7 +1308,7 @@ async def chat_completions(req: ChatRequest, _=Depends(auth)):
     expires = acc.get("cookies_exp")
 
     def tool_call_deltas(calls: list[dict]) -> list[list[dict]]:
-        """按 OpenAI 习惯分两片发：先 id/name，再 arguments 全文。"""
+        """Send in two chunks per OpenAI convention: id/name first, then the full arguments."""
         head = [{"index": i, "id": c["id"], "type": "function",
                  "function": {"name": c["function"]["name"], "arguments": ""}}
                 for i, c in enumerate(calls)]
@@ -1239,14 +1373,14 @@ async def chat_completions(req: ChatRequest, _=Depends(auth)):
                 store.mark(acc_id, False, str(exc))
                 yield _sse({"error": {"message": str(exc), "type": "auth_error", "code": 401}})
             except MuseGenerationError as exc:
-                store.mark(acc_id, True, f"助手超时: {str(exc)[:60]}")
+                store.mark(acc_id, True, f"Assistant timeout: {str(exc)[:60]}")
                 try:
                     engine.reset_thread()
                 except Exception:
                     pass
                 yield _sse({"error": {"message": str(exc), "type": "server_error", "code": 502}})
             except Exception as exc:
-                yield _sse({"error": {"message": f"内部错误: {exc}", "type": "server_error", "code": 500}})
+                yield _sse({"error": {"message": f"Internal error: {exc}", "type": "server_error", "code": 500}})
         return StreamingResponse(sync_stream(), media_type="text/event-stream", headers=_SSE_HEADERS)
 
     def run() -> str:
@@ -1278,7 +1412,7 @@ async def chat_completions(req: ChatRequest, _=Depends(auth)):
 
 
 def _responses_messages(req: ResponsesRequest) -> list[ChatMessage]:
-    """把 Responses API 的 instructions / input 归一成 messages。"""
+    """Normalize Responses API instructions / input into messages."""
     msgs: list[ChatMessage] = []
     if req.instructions:
         msgs.append(ChatMessage(role="system", content=req.instructions))
@@ -1294,16 +1428,16 @@ def _responses_messages(req: ResponsesRequest) -> list[ChatMessage]:
             if not isinstance(item, dict):
                 continue
             itype = item.get("type")
-            if item.get("role"):                      # message 形态
+            if item.get("role"):                      # message shape
                 msgs.append(ChatMessage(role=item["role"],
                                         content=item.get("content")))
             elif itype == "input_text":
                 msgs.append(ChatMessage(role="user", content=item.get("text")))
             elif itype == "function_call_output":
-                msgs.append(ChatMessage(role="user", content="【工具执行结果】\n"
+                msgs.append(ChatMessage(role="user", content="[Tool result]\n"
                                         + str(item.get("output") or "")))
             elif itype == "function_call":
-                msgs.append(ChatMessage(role="assistant", content="【请求调用工具】"
+                msgs.append(ChatMessage(role="assistant", content="[Requesting tool call]"
                                         + str(item.get("name") or "")))
     return msgs
 
@@ -1314,20 +1448,20 @@ def _sse_event(event: str, data: dict) -> str:
 
 @app.post("/v1/responses")
 async def responses_api(req: ResponsesRequest, _=Depends(auth)):
-    """OpenAI Responses API —— 新版 Codex 默认走这个端点。
+    """OpenAI Responses API -- the new Codex default endpoint.
 
-    只实现 Codex 实际用到的子集：文本进 → 文本出（含流式事件）。
-    muse.ai 不会返回结构化的 tool_calls，关于工具调用的边界见 README。
+    Only the subset Codex actually uses: text in -> text out (including streaming events).
+    muse.ai never returns structured tool_calls; see the README for tool-calling limits.
     """
     prompt = build_chat_prompt(_responses_messages(req))
     if not prompt:
-        raise HTTPException(400, "input 为空")
+        raise HTTPException(400, "input is empty")
 
     model = resolve_model(req.model, default="muse-spark")
     timeout = int(req.timeout or CFG.chat_timeout)
     acc = store.pick_account(rotate=True, preferred_id=getattr(engine, "current_acc_id", None))
     if not acc:
-        raise HTTPException(400, "没有可用账号，请先在管理页面导入 cookie")
+        raise HTTPException(400, "No available accounts; import cookies on the admin page first")
 
     rid = "resp_" + uuid.uuid4().hex[:24]
     mid = "msg_" + uuid.uuid4().hex[:24]
@@ -1379,7 +1513,7 @@ async def responses_api(req: ResponsesRequest, _=Depends(auth)):
                     "type": "response.completed",
                     "response": envelope("completed", full)})
             except Exception as exc:  # noqa: BLE001
-                log.warning("responses 流式失败: %s", exc)
+                log.warning("responses streaming failed: %s", exc)
                 yield _sse_event("response.failed", {
                     "type": "response.failed",
                     "response": envelope("failed")})
@@ -1401,14 +1535,14 @@ async def responses_api(req: ResponsesRequest, _=Depends(auth)):
 @app.get("/v1/media/{name}")
 def get_media(name: str):
     if "/" in name or "\\" in name or ".." in name:
-        raise HTTPException(400, "非法文件名")
+        raise HTTPException(400, "Invalid filename")
     p = os.path.join(CFG.media_dir, name)
     if not os.path.isfile(p):
-        raise HTTPException(404, "文件不存在")
+        raise HTTPException(404, "File not found")
     return FileResponse(p)
 
 
-# ------------------------- 管理：总览 -------------------------
+# ------------------------- Admin: overview -------------------------
 @app.get("/admin/status")
 def admin_status(_=Depends(auth)):
     base = _public_base()
@@ -1419,7 +1553,7 @@ def admin_status(_=Depends(auth)):
         "media_count": len(os.listdir(CFG.media_dir))
         if os.path.isdir(CFG.media_dir) else 0,
         "browser_running": bool(engine.proc and engine.proc.poll() is None),
-        "essential_cookies": list(ESSENTIAL_COOKIES),
+        "elevated": _is_elevated(),
         "base_url": f"{base}/v1",
         "config": {"site": CFG.site_url, "cdp_port": CFG.cdp_port,
                    "image_timeout": CFG.image_timeout,
@@ -1429,7 +1563,7 @@ def admin_status(_=Depends(auth)):
     }
 
 
-# ------------------------- 管理：账号池 -------------------------
+# ------------------------- Admin: account pool -------------------------
 @app.get("/admin/accounts")
 def list_accounts(_=Depends(auth)):
     return {"accounts": store.list_accounts(), "stats": store.stats()}
@@ -1438,35 +1572,39 @@ def list_accounts(_=Depends(auth)):
 @app.post("/admin/accounts")
 def add_account(req: AccountRequest, _=Depends(auth)):
     added: list[dict] = []
-    seen: list[dict] = []          # 本次导入的所有 cookie，用来检查核心项是否齐全
+    seen: list[dict] = []          # all cookies imported this time, used to check core-item completeness
 
     if req.batch:
-        for label, cookies in parse_batch(req.batch):
-            acc = store.add_account(cookies, label)
+        for label, cookies, exp_map in parse_batch(req.batch):
+            acc = store.add_account(cookies, label or req.label, cookies_exp=exp_map or req.expires)
             seen.append(cookies)
             added.append({"id": acc["id"], "label": acc["label"],
                           "cookie_count": len(cookies),
                           "expires_at": acc.get("expires_at")})
 
     cookies = dict(req.cookies)
+    expires = dict(req.expires or {})
     if req.cookie_header:
-        cookies.update(parse_cookie_text(req.cookie_header))
+        parsed_c, parsed_e = parse_cookie_payload(req.cookie_header)
+        cookies.update(parsed_c)
+        if parsed_e and not expires:
+            expires.update(parsed_e)
     if cookies:
-        acc = store.add_account(cookies, req.label, cookies_exp=req.expires)
+        acc = store.add_account(cookies, req.label, cookies_exp=expires)
         seen.append(cookies)
         added.append({"id": acc["id"], "label": acc["label"],
                       "cookie_count": len(cookies),
                       "expires_at": acc.get("expires_at")})
 
     if not added:
-        raise HTTPException(400, "未解析到任何 cookie，请检查格式")
+        raise HTTPException(400, "No cookies parsed; check the format")
 
-    # 只要有一个账号把核心 cookie 凑齐就算通过（批量时按整体判断）
+    # Passing only requires one account to hold all core cookies (judged across the batch)
     missing = [n for n in ESSENTIAL_COOKIES
                if not any(n in c for c in seen)]
     return {"added": added, "count": len(added),
             "essential_missing": missing,
-            "warning": (f"缺少核心 cookie：{', '.join(missing)}，该账号可能无法生成"
+            "warning": (f"Missing core cookies: {', '.join(missing)}; this account may fail to generate"
                         if missing else "")}
 
 
@@ -1474,7 +1612,7 @@ def add_account(req: AccountRequest, _=Depends(auth)):
 def patch_account(aid: str, req: AccountPatch, _=Depends(auth)):
     acc = store.update_account(aid, label=req.label, enabled=req.enabled)
     if not acc:
-        raise HTTPException(404, "账号不存在")
+        raise HTTPException(404, "Account not found")
     return {k: v for k, v in acc.items() if k != "cookies"} | {
         "cookie_count": len(acc.get("cookies", {}))}
 
@@ -1483,18 +1621,18 @@ def patch_account(aid: str, req: AccountPatch, _=Depends(auth)):
 def del_account(aid: str, _=Depends(auth)):
     ok = store.delete_account(aid)
     if not ok:
-        raise HTTPException(404, "账号不存在")
+        raise HTTPException(404, "Account not found")
     return {"deleted": True, "id": aid}
 
 
 @app.post("/admin/accounts/{aid}/test")
 async def test_account(aid: str, _=Depends(auth)):
-    """真实打开 muse.ai 验证该账号 cookie 是否仍可登录。"""
+    """Actually open muse.ai to verify whether this account's cookies still log in."""
     acc = store.get_account(aid)
     if not acc:
-        raise HTTPException(404, "账号不存在")
+        raise HTTPException(404, "Account not found")
     if not acc.get("cookies"):
-        raise HTTPException(400, "该账号没有 cookie")
+        raise HTTPException(400, "This account has no cookies")
 
     def _probe():
         with GEN_LOCK:
@@ -1503,21 +1641,21 @@ async def test_account(aid: str, _=Depends(auth)):
                 engine.refresh(acc["cookies"], acc.get("cookies_exp"))
                 synced = _sync_cookies(aid)
                 quota = None
-                try:  # 顺带刷新额度；读不到不影响测试结论
+                try:  # also refresh quota; failure does not affect the test verdict
                     quota = engine.quota(acc["cookies"],
                                          acc.get("cookies_exp"))
                     quota["checked_at"] = int(time.time())
                     store.update_account(aid, quota=quota)
                 except Exception:  # noqa: BLE001
                     quota = None
-                store.mark(aid, True, "会话有效")
-                return {"ok": True, "message": "会话有效，可正常生成",
+                store.mark(aid, True, "Session valid")
+                return {"ok": True, "message": "Session valid; generation should work",
                         "synced": synced, "quota": quota}
             except MuseAuthError as exc:
                 store.mark(aid, False, str(exc)[:200])
                 return {"ok": False, "message": str(exc)[:200]}
             except Exception as exc:  # noqa: BLE001
-                store.touch_keepalive(aid, None, f"测试未确认（保留账号状态）: {str(exc)[:200]}")
+                store.touch_keepalive(aid, None, f"Test inconclusive (account state kept): {str(exc)[:200]}")
                 return {"ok": False, "message": str(exc)[:200]}
 
     res = await asyncio.to_thread(_probe)
@@ -1533,22 +1671,25 @@ async def relogin_account(aid: str, _=Depends(auth)):
 
 @app.post("/admin/accounts/{aid}/cookies")
 def update_cookies(aid: str, payload: dict = Body(...), _=Depends(auth)):
-    """更新某个账号的 cookie（用于会话过期后补新 cookie）。"""
+    """Update one account's cookies (for topping up cookies after a session expires)."""
     cookies = dict(payload.get("cookies") or {})
+    expires = dict(payload.get("expires") or {})
     if payload.get("cookie_header"):
-        cookies.update(parse_cookie_text(payload["cookie_header"]))
+        parsed_c, parsed_e = parse_cookie_payload(payload["cookie_header"])
+        cookies.update(parsed_c)
+        if parsed_e and not expires:
+            expires.update(parsed_e)
     if not cookies:
-        raise HTTPException(400, "未解析到 cookie")
-    exp = {k: int(v) for k, v in (payload.get("expires") or {}).items()
-           if _pos(v)}
-    # 补入的是「全新会话」的 cookie，有效期估算锚点必须重置到当下，
-    # 否则会沿用旧会话的锚点，把剩余天数算少。
+        raise HTTPException(400, "No cookies parsed")
+    exp = {k: int(v) for k, v in expires.items() if _pos(v)}
+    # The top-up is a "fresh session's" cookies, so the expiry-estimate anchor must reset to now;
+    # otherwise the old session's anchor carries over and understates the remaining days.
     acc = store.update_account(aid, cookies=cookies, ok=None,
-                               note="已更新 cookie",
+                               note="Cookies updated",
                                expiry_anchor=int(time.time()),
                                cookies_exp=exp or None)
     if not acc:
-        raise HTTPException(404, "账号不存在")
+        raise HTTPException(404, "Account not found")
     return {"ok": True, "id": aid, "cookie_count": len(cookies),
             "expires_at": acc.get("expires_at")}
 
@@ -1557,7 +1698,7 @@ def update_cookies(aid: str, payload: dict = Body(...), _=Depends(auth)):
 def relogin(_=Depends(auth)):
     acc = store.pick_account(rotate=True)
     if not acc:
-        raise HTTPException(400, "没有可用账号")
+        raise HTTPException(400, "No available accounts")
     try:
         engine.start()
         engine.refresh(acc["cookies"], acc.get("cookies_exp"))
@@ -1566,20 +1707,20 @@ def relogin(_=Depends(auth)):
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=502)
 
 
-# ------------------------- 管理：额度 -------------------------
+# ------------------------- Admin: quota -------------------------
 @app.post("/admin/accounts/{aid}/quota")
 async def query_quota(aid: str, _=Depends(auth)):
-    """打开 muse.ai 的 Settings 面板读该账号的额度（实时），并缓存到账号记录。
+    """Read this account's quota from the muse.ai Settings panel (live) and cache it on the account record.
 
-    返回例：{"plan":"Free plan","weekly_reset":"Sep 30",
+    Example return: {"plan":"Free plan","weekly_reset":"Sep 30",
              "weekly_used_pct":1,"extra_left":"2B tokens left",
              "extra_used_pct":0,"extra_expires":"never"}
     """
     acc = store.get_account(aid)
     if not acc:
-        raise HTTPException(404, "账号不存在")
+        raise HTTPException(404, "Account not found")
     if not acc.get("cookies"):
-        raise HTTPException(400, "该账号没有 cookie")
+        raise HTTPException(400, "This account has no cookies")
 
     def _probe():
         with GEN_LOCK:
@@ -1597,20 +1738,20 @@ async def query_quota(aid: str, _=Depends(auth)):
     except MuseGenerationError as exc:
         raise HTTPException(502, str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(502, f"额度查询失败: {exc}") from exc
+        raise HTTPException(502, f"Quota query failed: {exc}") from exc
 
 
 @app.post("/admin/quota")
 async def query_any_quota(_=Depends(auth)):
-    """用当前最久未用的可用账号查一次额度（同池账号共享同一 muse.ai 计划的
-    通常只有一人使用时够用；多账号时建议按账号查）。"""
+    """Query quota once with the least-recently-used available account (accounts in one pool usually share one muse.ai plan,
+    so one check is enough for a single user; check per account with multiple accounts)."""
     acc = store.pick_account(rotate=True)
     if not acc:
-        raise HTTPException(400, "没有可用账号")
+        raise HTTPException(400, "No available accounts")
     return await query_quota(acc["id"], _)
 
 
-# ------------------------- 管理：接入信息 / API Key -------------------------
+# ------------------------- Admin: access info / API key -------------------------
 def _public_base() -> str:
     return (CFG.public_base or "").rstrip("/")
 
@@ -1626,18 +1767,18 @@ def get_apikey(_=Depends(auth)):
 
 @app.post("/admin/apikey/rotate")
 def rotate_apikey(_=Depends(auth)):
-    """生成新的 API Key，写入 .env 并立即生效（不用重启）。"""
+    """Generate a new API key, write it to .env, and apply it immediately (no restart)."""
     import secrets
     new_key = "m2a_" + secrets.token_hex(24)
     old = CFG.api_key
     CFG.api_key = new_key
     _persist_env("MUSE2API_KEY", new_key)
     return {"ok": True, "api_key": new_key, "previous": old,
-            "message": "已生成新 Key 并立即生效；旧 Key 已失效，请更新下游项目"}
+            "message": "New key generated and applied; the old key is invalid -- update downstream projects"}
 
 
 def _persist_env(key: str, value: str):
-    """把配置写回 .env（保留其它行，原子替换）。"""
+    """Write config back to .env (keeping other lines, atomic replace)."""
     path = os.path.join(CFG.base_dir, ".env")
     try:
         with open(path, encoding="utf-8") as f:
@@ -1657,13 +1798,13 @@ def _persist_env(key: str, value: str):
     os.replace(tmp, path)
 
 
-# ------------------------- 管理：Cookie 获取 -------------------------
+# ------------------------- Admin: fetching cookies -------------------------
 @app.get("/admin/cookie-helper")
 def cookie_helper(download: int = 0):
-    """返回本机取 cookie 的助手脚本（进阶方式，需要装 Python）。"""
+    """Return the local cookie-fetch helper script (advanced; requires Python)."""
     p = os.path.join(BASE_DIR, "tools", "get_muse_cookie.py")
     if not os.path.isfile(p):
-        raise HTTPException(404, "助手脚本缺失")
+        raise HTTPException(404, "Helper script missing")
     headers = {}
     if download:
         headers["Content-Disposition"] = 'attachment; filename="get_muse_cookie.py"'
@@ -1672,13 +1813,13 @@ def cookie_helper(download: int = 0):
 
 @app.get("/admin/extension")
 def extension_zip():
-    """把浏览器扩展打包成 zip 返回（推荐方式，零命令行）。
+    """Zip and return the browser extension (recommended; no CLI).
 
-    用户下载后解压 → chrome://extensions 开发者模式加载 → 点一下就导入 cookie。
+    Download, unzip, load in chrome://extensions developer mode, click once to import cookies.
     """
     src = os.path.join(BASE_DIR, "extension")
     if not os.path.isdir(src):
-        raise HTTPException(404, "扩展目录缺失")
+        raise HTTPException(404, "Extension directory missing")
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         for name in sorted(os.listdir(src)):
@@ -1696,15 +1837,15 @@ def extension_zip():
 
 @app.get("/admin/extension/files")
 def extension_files():
-    """列出扩展目录内容（前端展示用）。"""
+    """List extension directory contents (for the frontend)."""
     src = os.path.join(BASE_DIR, "extension")
     if not os.path.isdir(src):
-        raise HTTPException(404, "扩展目录缺失")
+        raise HTTPException(404, "Extension directory missing")
     return {"files": sorted(f for f in os.listdir(src)
                             if os.path.isfile(os.path.join(src, f)))}
 
 
-# ------------------------- 管理：任务 / 媒体 -------------------------
+# ------------------------- Admin: tasks / media -------------------------
 @app.get("/admin/tasks")
 def admin_tasks(limit: int = 50, _=Depends(auth)):
     return {"tasks": store.list_tasks(limit)}
@@ -1713,7 +1854,7 @@ def admin_tasks(limit: int = 50, _=Depends(auth)):
 @app.delete("/admin/tasks/{tid}")
 def del_task(tid: str, _=Depends(auth)):
     if not store.delete_task(tid):
-        raise HTTPException(404, "任务不存在")
+        raise HTTPException(404, "Task not found")
     return {"deleted": True}
 
 
@@ -1739,7 +1880,7 @@ def admin_media(_=Depends(auth)):
     return {"media": items, "count": len(items)}
 
 
-# ------------------------- 前端页面 -------------------------
+# ------------------------- Frontend pages -------------------------
 def _admin_html() -> str:
     p = os.path.join(BASE_DIR, "admin.html")
     try:
@@ -1748,8 +1889,8 @@ def _admin_html() -> str:
     except OSError:
         return ("<!doctype html><meta charset=utf-8><body style='background:#0b0f19;"
                 "color:#e6e8ee;font-family:system-ui;padding:40px'>"
-                "<h2>muse2api</h2><p>管理页面文件 admin.html 缺失。</p>"
-                "<p>接口可用：<code>/v1/images/generations</code>、"
+                "<h2>muse2api</h2><p>Admin page file admin.html is missing.</p>"
+                "<p>APIs available: <code>/v1/images/generations</code>, "
                 "<code>/v1/videos</code></p></body>")
 
 
@@ -1764,7 +1905,7 @@ def admin_page():
 
 
 
-# ------------------------- 账号自动保活与静默续期 -------------------------
+# ------------------------- Account auto-keepalive and silent renewal -------------------------
 KEEPALIVE_LOCK = asyncio.Lock()
 KEEPALIVE_STATE = {
     "running": False,
@@ -1775,10 +1916,10 @@ KEEPALIVE_STATE = {
 
 
 def _probe_account_sync(aid: str, check_quota: bool = False) -> dict:
-    """通过 muse.ai/api/session 触发 Meta 网关签发新 hatch_vml (+48h) / hatch_sess (+30d) 并唤醒云端 VM。"""
+    """Trigger the Meta gateway via muse.ai/api/session to issue fresh hatch_vml (+48h) / hatch_sess (+30d) and wake the cloud VM."""
     acc = store.get_account(aid)
     if not acc or not acc.get("cookies"):
-        return {"ok": False, "id": aid, "label": (acc or {}).get("label", aid), "error": "账号无有效 cookie"}
+        return {"ok": False, "id": aid, "label": (acc or {}).get("label", aid), "error": "Account has no valid cookies"}
     try:
         res = engine.renew_session_http(acc["cookies"], acc.get("cookies_exp"), wake_vm=True)
         store.update_account(
@@ -1789,7 +1930,7 @@ def _probe_account_sync(aid: str, check_quota: bool = False) -> dict:
             synced_at=int(time.time()),
         )
         vm_state = res.get("vm_state") or "RUNNING"
-        store.touch_keepalive(aid, True, f"会话有效 · 自动保活 (VM: {vm_state})")
+        store.touch_keepalive(aid, True, f"Session healthy - auto keepalive (VM: {vm_state})")
         quota = acc.get("quota")
         if check_quota and GEN_LOCK.acquire(blocking=False):
             try:
@@ -1798,7 +1939,7 @@ def _probe_account_sync(aid: str, check_quota: bool = False) -> dict:
                 quota["checked_at"] = int(time.time())
                 store.update_account(aid, quota=quota)
             except Exception as qe:  # noqa: BLE001
-                log.warning("读取账号 %s 额度失败: %s", aid, qe)
+                log.warning("Failed to read quota for account %s: %s", aid, qe)
             finally:
                 GEN_LOCK.release()
         updated = store.get_account(aid) or {}
@@ -1813,15 +1954,15 @@ def _probe_account_sync(aid: str, check_quota: bool = False) -> dict:
             "quota": quota,
         }
     except MuseAuthError as exc:
-        store.touch_keepalive(aid, False, f"保活认证失败: {str(exc)[:200]}")
+        store.touch_keepalive(aid, False, f"Keepalive auth failed: {str(exc)[:200]}")
         return {"ok": False, "id": aid, "label": acc.get("label", aid), "error": str(exc)}
     except Exception as exc:  # noqa: BLE001
-        store.touch_keepalive(aid, None, f"保活未确认（保留账号状态）: {str(exc)[:200]}")
+        store.touch_keepalive(aid, None, f"Keepalive inconclusive (account state kept): {str(exc)[:200]}")
         return {"ok": False, "id": aid, "label": acc.get("label", aid), "error": str(exc)}
 
 
 async def run_keepalive_all(force: bool = False) -> dict:
-    """执行账号保活：force=True 时强制刷新所有启用账号，否则刷新临期/未检账号并保持 VM 热备。"""
+    """Run account keepalive: force=True refreshes all enabled accounts, otherwise only near-expiry/unchecked ones, keeping the VM warm."""
     async with KEEPALIVE_LOCK:
         now = int(time.time())
         KEEPALIVE_STATE["running"] = True
@@ -1846,13 +1987,13 @@ async def run_keepalive_all(force: bool = False) -> dict:
                     or (a.get("ok") is not True)
                 )
                 if not needs_run:
-                    skipped.append({"id": aid, "label": label, "reason": "会话充足且近期已保活"})
+                    skipped.append({"id": aid, "label": label, "reason": "Session healthy and recently kept alive"})
                     continue
 
-                log.info("【自动保活】正在为账号 %s (%s) 执行静默续期与 VM 唤醒...", label, aid)
+                log.info("[auto-keepalive] Silent renewal + VM wake for account %s (%s)...", label, aid)
                 res = await asyncio.to_thread(_probe_account_sync, aid, False)
                 results.append(res)
-                log.info("【自动保活】账号 %s 执行结果: ok=%s expires_at=%s", label, res.get("ok"), res.get("expires_at"))
+                log.info("[auto-keepalive] Account %s result: ok=%s expires_at=%s", label, res.get("ok"), res.get("expires_at"))
                 await asyncio.sleep(0.5)
 
             summary = {
@@ -1870,71 +2011,98 @@ async def run_keepalive_all(force: bool = False) -> dict:
 
 
 def _warmup_browser_sync():
-    """后台静默预热浏览器与首个可用账号的 WebSocket 隧道，使重启后首条请求也秒回。"""
+    """Silently pre-warm the browser and the first available account's WebSocket tunnel in the background, so the first request after restart is instant."""
     if getattr(engine, "current_acc_id", None) and engine.page is not None:
         return
+    # Idle shutdown is freeing RAM on purpose; don't relaunch until real demand.
+    idle_min = CFG.browser_idle_min
+    if idle_min and idle_min > 0 and getattr(engine, "idle_stopped_at", 0):
+        if time.time() - engine.idle_stopped_at < idle_min * 60:
+            return
     acc = store.pick_account(rotate=False)
     if not acc or not acc.get("cookies"):
         return
     if not GEN_LOCK.acquire(blocking=False):
         return
     try:
-        log.info("【浏览器预热】正在后台预热账号 %s (%s) 的热备标签页...", acc.get("label"), acc["id"])
+        log.info("[browser warmup] Pre-warming hot tab for account %s (%s) in background...", acc.get("label"), acc["id"])
         refreshed = _renew_and_persist(acc["id"], wake_vm=True, force=False) or acc
         engine.start()
         engine.ensure_page(refreshed["cookies"], refreshed.get("cookies_exp"), account_id=acc["id"])
-        log.info("【浏览器预热】账号 %s (%s) 热备标签页与 WebSocket 已就绪", acc.get("label"), acc["id"])
+        log.info("[browser warmup] Hot tab + WebSocket ready for account %s (%s)", acc.get("label"), acc["id"])
     except Exception as exc:  # noqa: BLE001
-        log.warning("【浏览器预热】预热异常: %s", exc)
+        log.warning("[browser warmup] Warmup error: %s", exc)
     finally:
         GEN_LOCK.release()
 
 
+async def _idle_reaper_loop():
+    """Stop the browser after MUSE2API_BROWSER_IDLE_MIN minutes without generations (0 = disabled).
+
+    Only fires while GEN_LOCK is free, so an in-flight generation can never be
+    killed. Pure-HTTP keepalive probes don't touch the browser, so they neither
+    reset the clock nor get disturbed; the next generation relaunches it."""
+    idle_min = CFG.browser_idle_min
+    if not idle_min or idle_min <= 0:
+        return
+    log.info("[browser idle shutdown] Enabled: browser stops after %d idle minutes", idle_min)
+    while True:
+        await asyncio.sleep(60)
+        try:
+            if GEN_LOCK.acquire(blocking=False):
+                try:
+                    engine.stop_if_idle(idle_min)
+                finally:
+                    GEN_LOCK.release()
+        except Exception as e:  # noqa: BLE001
+            log.warning("[browser idle shutdown] Reaper error: %s", e)
+
+
 async def _keepalive_loop():
-    """后台常驻守护任务：每 15 分钟轮询一次账号健康状态并保持 VM 热备。"""
-    log.info("【自动保活守护进程】已启动，检测周期: 15 分钟")
+    """Resident background daemon: polls account health every 15 minutes and keeps the VM warm."""
+    log.info("[auto-keepalive daemon] Started, check interval: 15 minutes")
     await asyncio.sleep(1)
     try:
         await asyncio.to_thread(_warmup_browser_sync)
     except Exception as e:  # noqa: BLE001
-        log.warning("【浏览器预热】异常: %s", e)
+        log.warning("[browser warmup] Error: %s", e)
     while True:
         try:
             await run_keepalive_all(force=False)
             if not getattr(engine, "current_acc_id", None) or engine.page is None:
                 await asyncio.to_thread(_warmup_browser_sync)
         except Exception as e:  # noqa: BLE001
-            log.error("【自动保活守护进程】轮询异常: %s", e)
+            log.error("[auto-keepalive daemon] Poll error: %s", e)
         await asyncio.sleep(900)
 
 
 @app.post("/admin/accounts/keepalive")
 async def trigger_keepalive_all(force: bool = True, _=Depends(auth)):
-    """管理员手动触发一次全账号保活续期。"""
+    """Admin manually triggers a keepalive renewal for all accounts."""
     if KEEPALIVE_STATE["running"]:
-        return {"status": "busy", "message": "保活任务正在执行中，请稍候"}
+        return {"status": "busy", "message": "Keepalive task already running; please wait"}
     return await run_keepalive_all(force=force)
 
 
 @app.post("/admin/accounts/{aid}/keepalive")
 async def trigger_keepalive_single(aid: str, _=Depends(auth)):
-    """手动针对单个账号执行保活续期。"""
+    """Manually run keepalive renewal for a single account."""
     return await asyncio.to_thread(_probe_account_sync, aid, False)
 
 
 @app.get("/admin/keepalive/status")
 def get_keepalive_status(_=Depends(auth)):
-    """获取保活守护协程状态。"""
+    """Get the keepalive daemon status."""
     return KEEPALIVE_STATE
 
 
-# ------------------------- 仓库实时更新检测、通知与一键在线升级 -------------------------
-REPO_URL = "https://github.com/czg86389-hub/muse2api"
+# ------------------------- Live repo update detection, notification, and one-click online upgrade -------------------------
+REPO_URL = os.environ.get("MUSE2API_REPO_URL", "https://github.com/its-benjamin/muse2api")
+UPSTREAM_REPO_URL = "https://github.com/czg86389-hub/muse2api"
 TRACKED_REPO_PATHS = [
-    "app.py", "engine.py", "store.py", "cdp.py", "config.py",
     "admin.html", "README.md", "version.json", "requirements.txt",
     "Dockerfile", "docker-compose.yml", ".env.example", ".gitignore",
-    "LICENSE", "extension", "deploy", "tools",
+    "LICENSE", "extension", "deploy", "tools", "start-windows.bat", "start-windows.ps1", "run.py",
 ]
 _UPDATE_CACHE: dict[str, Any] = {"ts": 0.0, "data": None}
 
@@ -1986,9 +2154,9 @@ def _git(args: list[str], timeout: int = 30):
 
 
 def _ensure_git_repo(token: str = ""):
-    """确保 BASE_DIR 已初始化为绑定 czg86389-hub/muse2api 的 Git 仓库。"""
+    """Ensure BASE_DIR is initialized as a git repo bound to its-benjamin/muse2api."""
     git_dir = os.path.join(BASE_DIR, ".git")
-    remote_url = f"https://x-access-token:{token}@github.com/czg86389-hub/muse2api.git" if token else f"{REPO_URL}.git"
+    remote_url = f"https://x-access-token:{token}@github.com/its-benjamin/muse2api.git" if token else f"{REPO_URL}.git"
     if not os.path.isdir(git_dir):
         _git(["init", "-b", "main"])
         _git(["remote", "add", "origin", remote_url])
@@ -1996,13 +2164,12 @@ def _ensure_git_repo(token: str = ""):
         _git(["reset", "--mixed", "origin/main"])
     else:
         _git(["remote", "set-url", "origin", remote_url])
-    _git(["config", "user.name", "czg86389-hub"])
-    _git(["config", "user.email", "czg86389-hub@users.noreply.github.com"])
-
+    _git(["config", "user.name", "its-benjamin"])
+    _git(["config", "user.email", "its-benjamin@users.noreply.github.com"])
 
 def _check_update_sync(force: bool = False) -> dict:
-    """检测 GitHub 官方仓库 (czg86389-hub/muse2api) 是否有新版本或新提交。
-    默认缓存 90 秒，防止频繁刷新触发 GitHub API 速率限制。"""
+    """Check whether the official GitHub repo (czg86389-hub/muse2api) has new versions or commits.
+    Cached for 90 seconds by default to avoid tripping GitHub API rate limits."""
     now = time.time()
     if not force and _UPDATE_CACHE["data"] and (now - _UPDATE_CACHE["ts"]) < 90:
         return _UPDATE_CACHE["data"]
@@ -2038,7 +2205,7 @@ def _check_update_sync(force: bool = False) -> dict:
     highlights = list(local_ver_obj.get("highlights") or [])
     try:
         rv = requests.get(
-            f"https://raw.githubusercontent.com/czg86389-hub/muse2api/main/version.json?t={int(now)}",
+            f"https://raw.githubusercontent.com/its-benjamin/muse2api/main/version.json?t={int(now)}",
             timeout=6,
         )
         if rv.status_code == 200:
@@ -2057,7 +2224,7 @@ def _check_update_sync(force: bool = False) -> dict:
         if token:
             headers["Authorization"] = f"Bearer {token}"
         resp = requests.get(
-            "https://api.github.com/repos/czg86389-hub/muse2api/commits?sha=main&per_page=5",
+            "https://api.github.com/repos/its-benjamin/muse2api/commits?sha=main&per_page=5",
             headers=headers,
             timeout=6,
         )
@@ -2081,7 +2248,7 @@ def _check_update_sync(force: bool = False) -> dict:
     except Exception:
         pass
 
-    # 若用户通过 Docker/ZIP 部署（无 .git）且首次运行版本一致，记录初始基准 SHA
+    # For Docker/ZIP installs (no .git) whose version matches on first run, record the baseline SHA
     if not local_sha and remote_sha and local_version == remote_version:
         local_sha = remote_sha
         try:
@@ -2119,7 +2286,7 @@ def _check_update_sync(force: bool = False) -> dict:
 
 
 def _upgrade_from_github_sync() -> dict:
-    """从 GitHub 拉取最新代码覆盖核心文件（兼容 Git 与无 Git 的 Docker/ZIP 环境），绝不触碰 .env 与 data/。"""
+    """Pull the latest code from GitHub over core files (works with or without git in Docker/ZIP envs); never touches .env or data/."""
     import requests
     import tarfile
 
@@ -2133,15 +2300,15 @@ def _upgrade_from_github_sync() -> dict:
             _git(["reset", "--mixed", "origin/main"])
             upgraded_via = "git"
     except Exception as e:
-        log.warning("Git 拉取更新失败，将使用 Tarball 方式更新: %s", e)
+        log.warning("Git fetch for update failed; falling back to tarball update: %s", e)
 
     if not upgraded_via:
         resp = requests.get(
-            "https://codeload.github.com/czg86389-hub/muse2api/tar.gz/refs/heads/main",
+            "https://codeload.github.com/its-benjamin/muse2api/tar.gz/refs/heads/main",
             timeout=60,
         )
         if resp.status_code != 200:
-            raise HTTPException(502, f"下载 GitHub 更新包失败 (HTTP {resp.status_code})")
+            raise HTTPException(502, f"Failed to download GitHub update bundle (HTTP {resp.status_code})")
         protected_files = {".env", "data/accounts.json", "data/tasks.json"}
         with tarfile.open(fileobj=io.BytesIO(resp.content), mode="r:gz") as tar:
             for member in tar.getmembers():
@@ -2176,7 +2343,7 @@ def _upgrade_from_github_sync() -> dict:
     return {
         "ok": True,
         "via": upgraded_via,
-        "message": f"已成功更新至最新版本 {status.get('remote_version')} ({status.get('remote_sha')})",
+        "message": f"Updated to latest version {status.get('remote_version')} ({status.get('remote_sha')})",
         "status": status,
     }
 
@@ -2184,14 +2351,14 @@ def _upgrade_from_github_sync() -> dict:
 @app.get("/admin/update/check")
 @app.get("/admin/repo/status")
 async def admin_check_update(force: bool = False):
-    """供所有已部署节点实时检测 GitHub 官方仓库是否有新版本更新。"""
+    """Lets every deployed node check the official GitHub repo for new versions."""
     return await asyncio.to_thread(_check_update_sync, force)
 
 
 @app.post("/admin/update/upgrade")
 @app.post("/admin/repo/pull")
 async def admin_upgrade_now(payload: dict = Body(default={}), _=Depends(auth)):
-    """一键从 GitHub 官方仓库拉取最新更新并自动平滑重启服务。"""
+    """One-click pull of the latest update from the official GitHub repo with automatic graceful restart."""
     res = await asyncio.to_thread(_upgrade_from_github_sync)
     restart = payload.get("restart", True) if isinstance(payload, dict) else True
     if restart:
@@ -2208,7 +2375,7 @@ async def admin_upgrade_now(payload: dict = Body(default={}), _=Depends(auth)):
 
 @app.post("/admin/repo/push")
 async def admin_repo_push(payload: dict = Body(default={}), _=Depends(auth)):
-    """维护者专用：将当前节点核心代码推送到 GitHub 仓库（自动过滤 .env 与 data 目录）。"""
+    """Maintainer-only: push this node's core code to the GitHub repo (auto-excludes .env and data/)."""
     msg = (payload.get("message") or "").strip() or f"chore: sync update ({time.strftime('%Y-%m-%d %H:%M:%S')})"
     new_token = (payload.get("github_token") or "").strip()
     if new_token:
@@ -2225,18 +2392,18 @@ async def admin_repo_push(payload: dict = Body(default={}), _=Depends(auth)):
         if st.stdout.strip():
             c_res = _git(["commit", "-m", msg])
             if c_res.returncode != 0:
-                raise HTTPException(500, f"Git commit 失败: {c_res.stderr or c_res.stdout}")
+                raise HTTPException(500, f"Git commit failed: {c_res.stderr or c_res.stdout}")
             committed = True
         p_res = _git(["push", "origin", "HEAD:main"], timeout=60)
         if p_res.returncode != 0:
             err = (p_res.stderr or p_res.stdout or "").strip()
-            raise HTTPException(500, f"Git push 失败: {err[:300]}")
+            raise HTTPException(500, f"Git push failed: {err[:300]}")
         _UPDATE_CACHE["ts"] = 0.0
         status = _check_update_sync(force=True)
         return {
             "ok": True,
             "committed": committed,
-            "message": "已成功提交并推送到 GitHub 仓库",
+            "message": "Committed and pushed to the GitHub repo",
             "status": status,
         }
 
@@ -2247,14 +2414,19 @@ async def admin_repo_push(payload: dict = Body(default={}), _=Depends(auth)):
 async def _startup():
     for task in list(store.tasks.values()):
         if task.get("kind") == "image" and task.get("status") in ("queued", "processing"):
-            store.update_task(task["id"], status="failed", error="服务重启中断了任务，请重新提交")
+            store.update_task(task["id"], status="failed", error="Service restart interrupted the task; please resubmit")
     if not CFG.api_key:
         import secrets
         new_key = "m2a_" + secrets.token_hex(24)
         CFG.api_key = new_key
         _persist_env("MUSE2API_KEY", new_key)
-        log.info("🔑 未检测到 MUSE2API_KEY，已自动生成初始密钥: %s", new_key)
+        log.info("No MUSE2API_KEY found; auto-generated initial key: %s", new_key)
     asyncio.create_task(_keepalive_loop())
+    asyncio.create_task(_idle_reaper_loop())
+    if _is_elevated():
+        log.warning("Running as Administrator: Chrome will not stay attached "
+                    "(it re-spawns de-elevated and the debug port never opens). "
+                    "Restart from a NON-elevated terminal for the browser to work.")
 
 
 @app.on_event("shutdown")

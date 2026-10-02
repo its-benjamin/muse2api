@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en" id="htmlRoot">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>muse2api · 账号池控制台</title>
+<title data-i18n="meta.title">muse2api · Account Pool Console</title>
 <style>
   :root{
     --bg:#0a0e17; --bg2:#0e1421; --panel:#121a2b; --panel2:#0f1626;
@@ -20,7 +20,7 @@
   a{color:var(--accent);text-decoration:none}
   code,kbd,pre{font-family:ui-monospace,SFMono-Regular,Consolas,"Cascadia Mono",monospace}
 
-  /* ---------- 顶栏 ---------- */
+  /* ---------- Top bar ---------- */
   header{
     position:sticky;top:0;z-index:20;backdrop-filter:blur(14px);
     background:rgba(10,14,23,.82);border-bottom:1px solid var(--line);
@@ -43,7 +43,7 @@
   .keybox input{background:transparent;border:0;color:var(--text);outline:none;width:210px;font-size:12.5px;font-family:ui-monospace,monospace}
   .keybox button{padding:5px 10px;font-size:12px}
 
-  /* ---------- 布局 ---------- */
+  /* ---------- Layout ---------- */
   main{max-width:1280px;margin:0 auto;padding:22px}
   nav.tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:0}
   nav.tabs button{
@@ -55,7 +55,7 @@
   .tab{display:none}.tab.active{display:block;animation:fade .18s ease}
   @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 
-  /* ---------- 卡片 ---------- */
+  /* ---------- Cards ---------- */
   .card{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px}
   .card>h3{margin:0 0 4px;font-size:14.5px;display:flex;align-items:center;gap:8px}
   .card>h3 .tag{font-size:11px;font-weight:500;color:var(--muted);background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:1px 7px}
@@ -65,7 +65,7 @@
   .copyline{display:flex;gap:7px;align-items:center}
   .copyline input{flex:1;font-family:ui-monospace,monospace;font-size:12.5px}
 
-  /* ---------- 分步引导 ---------- */
+  /* ---------- Guided steps ---------- */
   .stepbox{display:flex;gap:13px;align-items:flex-start;padding:15px 0;border-bottom:1px solid rgba(32,41,61,.6)}
   .stepbox:last-child{border-bottom:0;padding-bottom:0}
   .stepbox:first-of-type{padding-top:4px}
@@ -86,14 +86,14 @@
   kbd{display:inline-block;background:var(--bg2);border:1px solid var(--line);border-bottom-width:2px;
     border-radius:5px;padding:1px 7px;font-size:11.5px;color:var(--text);line-height:1.6;white-space:nowrap}
 
-  /* ---------- 统计 ---------- */
+  /* ---------- Stats ---------- */
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
   .stat{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);border:1px solid var(--line);border-radius:var(--radius);padding:15px 17px}
   .stat .k{color:var(--muted);font-size:12px;margin-bottom:4px}
   .stat .v{font-size:25px;font-weight:650;letter-spacing:.4px}
   .stat.g .v{color:var(--ok)}.stat.r .v{color:var(--bad)}.stat.y .v{color:var(--warn)}.stat.b .v{color:var(--accent)}
 
-  /* ---------- 表单 ---------- */
+  /* ---------- Forms ---------- */
   label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px}
   input[type=text],input[type=number],textarea,select{
     width:100%;background:var(--bg2);color:var(--text);border:1px solid var(--line);border-radius:9px;
@@ -115,7 +115,7 @@
   button.mini{padding:4px 10px;font-size:12px;border-radius:7px}
   button.primary-lg{padding:11px 24px;font-size:13.5px}
 
-  /* ---------- 表格 ---------- */
+  /* ---------- Tables ---------- */
   .tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius)}
   table{width:100%;border-collapse:collapse;font-size:13px}
   th{background:var(--bg2);color:var(--muted);font-weight:500;font-size:12px;text-align:left;padding:10px 13px;white-space:nowrap;border-bottom:1px solid var(--line)}
@@ -133,7 +133,7 @@
   .acts{display:flex;gap:6px;flex-wrap:wrap}
   .empty{text-align:center;color:var(--muted);padding:34px 10px;font-size:13px}
 
-  /* ---------- 媒体库 ---------- */
+  /* ---------- Media library ---------- */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
   .tile{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;transition:.18s}
   .tile:hover{border-color:#37415a;transform:translateY(-2px)}
@@ -143,19 +143,19 @@
   .tile .meta .nm{font-family:ui-monospace,monospace;color:var(--text);font-size:11px;word-break:break-all}
   .tile .meta .ac{display:flex;gap:6px;margin-top:7px}
 
-  /* ---------- 结果预览 ---------- */
+  /* ---------- Result preview ---------- */
   .result{margin-top:14px;padding:14px;background:var(--bg2);border:1px dashed var(--line);border-radius:var(--radius);display:none}
   .result.show{display:block}
   .result img,.result video{max-width:100%;max-height:420px;border-radius:9px;display:block;margin-top:10px;background:#060911}
   pre.out{background:#060911;border:1px solid var(--line);border-radius:9px;padding:12px;overflow:auto;max-height:280px;font-size:12px;color:#9fe8c0;margin:10px 0 0;white-space:pre-wrap;word-break:break-all}
 
-  /* ---------- 提示条 ---------- */
+  /* ---------- Toasts ---------- */
   #toasts{position:fixed;right:20px;bottom:20px;z-index:99;display:flex;flex-direction:column;gap:9px;align-items:flex-end}
   .toast{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:11px 15px;font-size:13px;max-width:380px;box-shadow:0 12px 34px rgba(0,0,0,.55);animation:slide .2s ease}
   .toast.ok{border-left-color:var(--ok)}.toast.bad{border-left-color:var(--bad)}.toast.warn{border-left-color:var(--warn)}
   @keyframes slide{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
 
-  /* ---------- 文档 ---------- */
+  /* ---------- Docs ---------- */
   .doc h4{margin:20px 0 8px;font-size:13.5px;color:var(--text)}
   .doc h4:first-child{margin-top:0}
   pre.code{background:#060911;border:1px solid var(--line);border-radius:9px;padding:14px;overflow:auto;font-size:12.5px;line-height:1.65;color:#cfe3ff;position:relative}
@@ -168,7 +168,7 @@
   .live .led{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:bl 1.6s infinite}
   @keyframes bl{0%,100%{opacity:1}50%{opacity:.25}}
 
-  /* ---------- 未登录提示条 ---------- */
+  /* ---------- Not-logged-in banner ---------- */
   .banner{display:none;align-items:flex-start;gap:13px;background:linear-gradient(90deg,rgba(251,191,36,.14),rgba(251,191,36,.03));
     border:1px solid rgba(251,191,36,.42);border-radius:var(--radius);padding:15px 18px;margin-bottom:16px;font-size:13.5px;line-height:1.75}
   .banner.show{display:flex}
@@ -188,194 +188,194 @@
 <header>
   <div class="hwrap">
     <div class="logo">
-      <span class="dot"></span>muse2api <small>Muse 网页额度 · 反代 API</small>
-      <a href="https://github.com/czg86389-hub/muse2api" target="_blank" class="pill" style="margin-left:10px;text-decoration:none;color:var(--text);border-color:var(--line2);cursor:pointer" title="打开 GitHub 开源仓库 (https://github.com/czg86389-hub/muse2api)">
+      <span class="dot"></span>muse2api <small data-i18n="hdr.sub">Muse web quota · reverse-proxy API</small>
+      <a href="https://github.com/its-benjamin/muse2api" target="_blank" class="pill" style="margin-left:10px;text-decoration:none;color:var(--text);border-color:var(--line2);cursor:pointer" data-i18n-title="hdr.repoTip" title="GitHub (its-benjamin/muse2api) · Fork of czg86389-hub/muse2api">
         <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" style="vertical-align:-2px"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
-        <b>GitHub 仓库</b>
+        <b data-i18n="hdr.repo">GitHub Repo</b>
       </a>
-      <a href="https://linux.do/" target="_blank" class="pill" style="text-decoration:none;color:var(--text);border-color:var(--line2);cursor:pointer" title="社区认可与友情链接：LINUX DO 社区 (https://linux.do/)">
-        🤝 <b>LINUX DO</b>
+      <a href="https://linux.do/" target="_blank" class="pill" style="text-decoration:none;color:var(--text);border-color:var(--line2);cursor:pointer" data-i18n-title="hdr.ldTip" title="Community credit & link: LINUX DO (https://linux.do/)">
+        🤝 <b data-i18n="hdr.linuxdo">LINUX DO</b>
       </a>
-      <button class="ghost mini" onclick="toggleRepoPanel()" id="btnRepoTop" style="display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 11px;font-size:12px" title="查看官方仓库最新版本状态与更新通知">
-        📦 <span id="repoTopTxt">版本检测</span>
+      <button class="ghost mini" onclick="toggleRepoPanel()" id="btnRepoTop" style="display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 11px;font-size:12px" data-i18n-title="hdr.verTip" title="Check upstream release status and update notices">
+        📦 <span id="repoTopTxt" data-i18n="hdr.vercheck">Version check</span>
       </button>
     </div>
     <div class="pills">
-      <span class="pill" id="pSvc"><span class="led"></span>服务 <b>—</b></span>
-      <span class="pill" id="pAcc"><span class="led"></span>账号 <b>—</b></span>
-      <span class="pill" id="pBr"><span class="led"></span>浏览器 <b>—</b></span>
-      <span class="live" id="live"><span class="led"></span>自动刷新</span>
+      <button class="ghost mini" id="langBtn" onclick="toggleLang()" style="border-radius:999px;padding:4px 11px;font-size:12px" title="Switch language / 切换语言">中文</button>
+      <span class="pill" id="pSvc" data-i18n="pill.svc"><span class="led"></span>Service <b>—</b></span>
+      <span class="pill" id="pAcc" data-i18n="pill.acc"><span class="led"></span>Accounts <b>—</b></span>
+      <span class="pill" id="pBr" data-i18n="pill.br"><span class="led"></span>Browser <b>—</b></span>
+      <span class="live" id="live" data-i18n="pill.live"><span class="led"></span>Auto-refresh</span>
       <span class="keybox" id="keyBox">
-        <span class="lbl" id="keyLbl">API Key</span>
-        <input id="key" type="password" placeholder="粘贴 m2a_ 开头的密钥" autocomplete="off">
-        <button class="ghost mini" onclick="saveKey()">保存</button>
+        <span class="lbl" id="keyLbl" data-i18n="key.lbl">API Key</span>
+        <input id="key" type="password" data-i18n-ph="key.ph" placeholder="Paste a key starting with m2a_" autocomplete="off">
+        <button class="ghost mini" onclick="saveKey()" data-i18n="key.save">Save</button>
       </span>
     </div>
   </div>
 </header>
 
 <main>
-  <!-- 实时新版本更新通知横幅（当官方仓库有新提交/新版本时自动向所有已部署用户弹出） -->
+  <!-- Live update banner (shown to all deployed users when the upstream repo has new commits/releases) -->
   <div class="banner" id="updateBanner" style="border-color:rgba(79,140,255,.65);background:linear-gradient(90deg,rgba(79,140,255,.16),rgba(167,139,250,.05));align-items:center;justify-content:space-between;flex-wrap:wrap">
     <div style="display:flex;gap:12px;align-items:flex-start;flex:1;min-width:260px">
       <span class="ic">🔔</span>
       <div>
-        <b style="color:#60a5fa">检测到 muse2api 官方仓库发布了新版本更新！</b>
-        <span id="updBannerVer" class="badge info" style="margin-left:8px">新版本</span><br>
-        <span id="updBannerMsg" style="color:var(--muted);font-size:13px">官方仓库已有新功能或性能优化提交，点击右侧按钮即可一键在线升级（自动保留本地 .env 密钥与账号池数据）。</span>
+        <b style="color:#60a5fa" data-i18n="upd.title">A new muse2api upstream release is available!</b>
+        <span id="updBannerVer" class="badge info" style="margin-left:8px" data-i18n="upd.ver">New version</span><br>
+        <span id="updBannerMsg" style="color:var(--muted);font-size:13px" data-i18n="upd.msg">The upstream repo has new features or performance fixes. Click the button on the right to upgrade online in one click (local .env keys and pool data are preserved).</span>
       </div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <button onclick="upgradeNow()" id="btnBannerUpgrade">⚡ 一键在线升级并重启</button>
-      <button class="ghost mini" onclick="toggleRepoPanel()">查看更新内容</button>
-      <button class="ghost mini" onclick="dismissUpdateBanner()">暂不提醒</button>
+      <button onclick="upgradeNow()" id="btnBannerUpgrade" data-i18n="upd.go">⚡ Upgrade online & restart</button>
+      <button class="ghost mini" onclick="toggleRepoPanel()" data-i18n="upd.view">View changes</button>
+      <button class="ghost mini" onclick="dismissUpdateBanner()" data-i18n="upd.later">Later</button>
     </div>
   </div>
 
-  <!-- 版本状态与官方仓库更新中心面板 -->
+  <!-- Version status & upstream update panel -->
   <div class="card" id="repoPanel" style="display:none;border-color:rgba(79,140,255,.45);margin-bottom:16px">
     <h3>
       <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
-      官方仓库版本检测与在线热升级
-      <a href="https://github.com/czg86389-hub/muse2api" target="_blank" class="tag" style="color:var(--accent)">czg86389-hub/muse2api ↗</a>
-      <span id="repoBadge" class="badge info" style="margin-left:auto">检测中…</span>
+      <span data-i18n="repo.title">Upstream version check & online upgrade</span>
+      <a href="https://github.com/its-benjamin/muse2api" target="_blank" class="tag" style="color:var(--accent)">its-benjamin/muse2api ↗</a>
+      <a href="https://github.com/czg86389-hub/muse2api" target="_blank" class="tag" style="color:var(--muted)">upstream: czg86389-hub ↗</a>
     </h3>
-    <div class="hint" id="repoStatusDesc">正在实时对比本地版本与 GitHub 官方仓库最新版本…（在线升级自动保留 <code>.env</code> 密钥与 <code>data/</code> 账号池及媒体数据）</div>
+    <div class="hint" id="repoStatusDesc" data-i18n="repo.desc.loading">Comparing the local version against the latest GitHub release… (online upgrades keep <code>.env</code> keys and <code>data/</code> pool & media files)</div>
     <div id="repoCommitsBox" style="margin-top:10px;background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:10px 14px;font-size:12.5px"></div>
     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <button onclick="upgradeNow()" id="btnRepoPull">⚡ 一键从 GitHub 在线更新并重启</button>
-      <button class="ghost" onclick="loadRepoStatus(true)">🔍 立即重新检测更新</button>
-      <a href="https://github.com/czg86389-hub/muse2api/commits/main" target="_blank" class="btnlike ghostlike" style="padding:7px 13px;font-size:12.5px">查看 GitHub 完整提交记录 ↗</a>
-    </div>
+      <button onclick="upgradeNow()" id="btnRepoPull" data-i18n="repo.pull">⚡ Update from GitHub & restart</button>
+      <button class="ghost" onclick="loadRepoStatus(true)" data-i18n="repo.check">🔍 Check for updates now</button>
+      <a href="https://github.com/its-benjamin/muse2api/commits/main" target="_blank" class="btnlike ghostlike" style="padding:7px 13px;font-size:12.5px" data-i18n="repo.history">Full commit history on GitHub ↗</a>
   </div>
 
   <div class="banner" id="authBanner">
     <span class="ic">🔑</span>
     <div>
-      <b>需要先填入 API Key，页面才能读到数据</b><br>
-      <span style="color:var(--muted)">
-        API Key 是这个服务自己的「访问密码」，用来防止别人白用你的 Muse 账号额度。
-        它<b style="color:var(--text)">不是</b> Muse 的账号密码，是部署时自动生成的一串随机字符（以 <code>m2a_</code> 开头）。<br>
-        把它粘贴到右上角的输入框，点「保存」即可 —— 浏览器会记住，下次不用再输。
+      <b data-i18n="auth.title">Enter your API Key first so this page can load data</b><br>
+      <span style="color:var(--muted)" data-i18n="auth.body">
+        The API Key is this service's own "access password" — it stops strangers from spending your Muse quota.
+        It is <b style="color:var(--text)">not</b> your Muse login password; it's a random string generated at deploy time (starting with <code>m2a_</code>).<br>
+        Paste it into the input at the top right and click "Save" — your browser remembers it, so you won't need to re-enter it.
       </span>
     </div>
   </div>
 
   <nav class="tabs">
-    <button class="active" data-t="pool">账号池</button>
-    <button data-t="cookie">获取 Cookie</button>
-    <button data-t="tasks">任务记录</button>
-    <button data-t="media">媒体库</button>
-    <button data-t="play">接口测试</button>
-    <button data-t="docs">接入文档</button>
+    <button class="active" data-t="pool" data-i18n="tab.pool">Accounts</button>
+    <button data-t="cookie" data-i18n="tab.cookie">Get Cookie</button>
+    <button data-t="tasks" data-i18n="tab.tasks">Tasks</button>
+    <button data-t="media" data-i18n="tab.media">Media</button>
+    <button data-t="play" data-i18n="tab.play">API Playground</button>
+    <button data-t="docs" data-i18n="tab.docs">Integration Docs</button>
   </nav>
 
-  <!-- ==================== 账号池 ==================== -->
+  <!-- ==================== Accounts ==================== -->
   <section class="tab active" id="tab-pool">
     <div class="warnbar" id="expWarn" style="display:none">
       <span id="expWarnText"></span>
-      <button class="ghost mini" onclick="goTab('cookie')">去重新登录</button>
+      <button class="ghost mini" onclick="goTab('cookie')" data-i18n="pool.relogin">Re-login</button>
     </div>
     <div class="card" style="border-color:rgba(79,140,255,.4)">
-      <h3>接入信息 <span class="tag">下游项目填这两个值</span></h3>
-      <div class="hint">把下面两项填进你的项目就能调用。BASE URL 就是接口地址前缀。</div>
+      <h3 data-i18n="pool.conn">Connection info <span class="tag">Paste these two values into your project</span></h3>
+      <div class="hint" data-i18n="pool.connHint">Paste the two values below into your project and you are ready to call. BASE URL is the API address prefix.</div>
       <div class="row">
         <div style="flex:3">
-          <label>BASE URL（接口地址）</label>
+          <label data-i18n="pool.baseUrl">BASE URL</label>
           <div class="copyline">
             <input type="text" id="inBase" readonly>
-            <button class="ghost mini" onclick="copyEl('inBase')">复制</button>
+            <button class="ghost mini" onclick="copyEl('inBase')" data-i18n="pool.copyBase">Copy</button>
           </div>
         </div>
         <div style="flex:3">
-          <label>API Key（访问密钥）</label>
+          <label data-i18n="pool.apiKey">API Key</label>
           <div class="copyline">
             <input type="text" id="inKey" readonly>
-            <button class="ghost mini" onclick="toggleKey()" id="keyEye">显示</button>
-            <button class="ghost mini" onclick="copyKey()">复制</button>
-            <button class="danger mini" onclick="rotateKey()">重新生成</button>
+            <button class="ghost mini" onclick="toggleKey()" id="keyEye" data-i18n="pool.show">Show</button>
+            <button class="ghost mini" onclick="copyKey()" data-i18n="pool.copyKey">Copy</button>
+            <button class="danger mini" onclick="rotateKey()" data-i18n="pool.regen">Regenerate</button>
           </div>
         </div>
       </div>
-      <div class="hint" style="margin:11px 0 0">
-        模型名：<code>muse-spark</code>（对话/代码）、<code>muse-image</code>（生图）、<code>muse-video</code>（生视频）。
-        完整调用示例见「接入文档」页签。
+      <div class="hint" style="margin:11px 0 0" data-i18n="pool.models">
+        Models: <code>muse-spark</code> (chat/code), <code>muse-image</code> (images), <code>muse-video</code> (video).
+        See the Integration Docs tab for full examples.
       </div>
     </div>
 
     <div class="stats">
-      <div class="stat b"><div class="k">账号总数</div><div class="v" id="sTotal">0</div></div>
-      <div class="stat g"><div class="k">可用</div><div class="v" id="sOk">0</div></div>
-      <div class="stat r"><div class="k">异常</div><div class="v" id="sBad">0</div></div>
-      <div class="stat y"><div class="k">已禁用</div><div class="v" id="sDis">0</div></div>
-      <div class="stat"><div class="k">媒体文件</div><div class="v" id="sMedia">0</div></div>
+      <div class="stat b"><div class="k" data-i18n="stat.total">Total accounts</div><div class="v" id="sTotal">0</div></div>
+      <div class="stat g"><div class="k" data-i18n="stat.ok">Healthy</div><div class="v" id="sOk">0</div></div>
+      <div class="stat r"><div class="k" data-i18n="stat.bad">Faulty</div><div class="v" id="sBad">0</div></div>
+      <div class="stat y"><div class="k" data-i18n="stat.dis">Disabled</div><div class="v" id="sDis">0</div></div>
+      <div class="stat"><div class="k" data-i18n="stat.media">Media files</div><div class="v" id="sMedia">0</div></div>
     </div>
 
     <div class="card">
-      <h3>添加账号 <span class="tag">支持批量</span></h3>
-      <div class="hint">
-        从浏览器复制 <b>muse.ai</b> 的 Cookie 字符串粘贴进来即可。关键 cookie：
+      <h3 data-i18n="pool.add">Add accounts <span class="tag">Batch supported</span></h3>
+      <div class="hint" data-i18n="pool.addHint">
+        Copy the cookie string for <b>muse.ai</b> from your browser and paste it here. Key cookies:
         <code>hatch_sess</code>、<code>hatch_gw</code>、<code>hatch_vml</code>。
-        批量导入时每行一个账号，格式 <code>标签 | cookie串</code>（标签可省略）。
+        For batch import, one account per line as <code>label | cookie-string</code> (label optional).
       </div>
       <div class="row">
         <div style="max-width:230px">
-          <label>账号标签（单条导入用）</label>
-          <input type="text" id="newLabel" placeholder="例如 muse-main">
+          <label data-i18n="pool.lblSingle">Account label (single import)</label>
+          <input type="text" id="newLabel" data-i18n-ph="pool.lblPh" placeholder="e.g. muse-main">
         </div>
         <div style="flex:3">
-          <label>Cookie 字符串</label>
-          <textarea id="newCookie" rows="4" placeholder="hatch_sess=...; hatch_gw=...; hatch_vml=...&#10;或批量：&#10;acc-01 | hatch_sess=...; hatch_gw=...&#10;acc-02 | hatch_sess=...; hatch_gw=..."></textarea>
+          <label data-i18n="pool.ckLbl">Cookie string</label>
+          <textarea id="newCookie" rows="4" data-i18n-ph="pool.ckPh" placeholder="hatch_sess=...; hatch_gw=...; hatch_vml=...&#10;or batch:&#10;acc-01 | hatch_sess=...; hatch_gw=...&#10;acc-02 | hatch_sess=...; hatch_gw=..."></textarea>
         </div>
       </div>
       <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
-        <button class="primary-lg" onclick="addAccount(false)">导入账号</button>
-        <button class="ghost" onclick="document.getElementById('newCookie').value='';">清空</button>
+        <button class="primary-lg" onclick="addAccount(false)" data-i18n="pool.import">Import</button>
+        <button class="ghost" onclick="document.getElementById('newCookie').value='';" data-i18n="pool.clear">Clear</button>
       </div>
     </div>
 
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:10px">
-          <h3 style="margin:0">账号列表 <span class="tag" id="poolCount">0</span></h3>
-          <span class="badge ok" id="keepaliveBadge" style="font-size:11px">● 自动保活轮转中 (30m)</span>
+          <h3 style="margin:0"><span data-i18n="pool.list">Account list</span> <span class="tag" id="poolCount">0</span></h3>
+          <span class="badge ok" id="keepaliveBadge" style="font-size:11px" data-i18n="pool.kaBadge">● Auto-keepalive running (15m)</span>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="secondary" id="btnKeepaliveAll" onclick="keepaliveAll()" style="font-size:12px;padding:6px 14px">⚡ 一键保活所有账号</button>
+          <button class="secondary" id="btnKeepaliveAll" onclick="keepaliveAll()" style="font-size:12px;padding:6px 14px" data-i18n="pool.kaAll">⚡ Keep alive all accounts</button>
         </div>
       </div>
-      <div class="hint">系统已开启<b>后台每 30 分钟静默保活</b>与<b>多账号公平轮转（LRU）</b>；「测试」会真实打开 muse.ai 验证会话。</div>
+      <div class="hint" data-i18n="pool.kaHint">Background silent keepalive runs <b>every 15 minutes</b> with <b>fair multi-account rotation (LRU)</b>; Test opens muse.ai for a real session check.</div>
       <div class="tblwrap"><table>
         <thead><tr>
-          <th>标签</th><th>账号 ID</th><th>状态</th><th>有效期</th><th>额度</th><th>启用</th><th>Cookie</th>
-          <th>最后使用</th><th>备注</th><th style="min-width:250px">操作</th>
+          <th data-i18n="th.label">Label</th><th data-i18n="th.accId">Account ID</th><th data-i18n="th.status">Status</th><th data-i18n="th.expiry">Expiry</th><th data-i18n="th.quota">Quota</th><th data-i18n="th.enabled">Enabled</th><th data-i18n="th.cookies">Cookies</th>
+          <th data-i18n="th.lastUsed">Last used</th><th data-i18n="th.note">Note</th><th style="min-width:250px" data-i18n="th.actions">Actions</th>
         </tr></thead>
-        <tbody id="poolBody"><tr><td colspan="10" class="empty">加载中…</td></tr></tbody>
+        <tbody id="poolBody" data-i18n="pool.loading"><tr><td colspan="10" class="empty">Loading…</td></tr></tbody>
       </table></div>
     </div>
   </section>
 
-  <!-- ==================== 获取 Cookie ==================== -->
+  <!-- ==================== Get Cookie ==================== -->
   <section class="tab" id="tab-cookie">
     <div class="card" style="border-color:rgba(52,211,153,.45)">
-      <h3>方式一：浏览器扩展 <span class="tag">推荐 · 零命令行 · 全平台</span></h3>
-      <div class="hint">
-        用一个浏览器小扩展，把你<b>自己电脑上已经登录好的 muse.ai 登录态</b>同步过来。
-        不用装 Python、不用开终端、不用敲命令。<br>
-        <b>为什么必须用扩展</b>：muse.ai 的 4 条核心 cookie 都带
-        <code>httpOnly</code> 标记，网页脚本（F12 里敲 <code>document.cookie</code>、
-        小书签）读不到；只有浏览器扩展的 <code>cookies</code> 接口能拿到。
+      <h3 data-i18n="ck.opt1">Option 1: Browser extension <span class="tag">Recommended, no CLI, all platforms</span></h3>
+      <div class="hint" data-i18n="ck.extHint">
+        Use a small browser extension to sync the <b>muse.ai session you are already logged into on your own machine</b>.
+        No Python, no terminal, no commands.<br>
+        <b>Why an extension is required</b>: all 4 core muse.ai cookies carry the
+        <code>httpOnly</code> flag, so page scripts (<code>document.cookie</code> in F12,
+        bookmarklets) cannot read them; only a browser extension's <code>cookies</code> API can.
       </div>
 
       <div class="stepbox">
         <div class="stepno">1</div>
         <div>
-          <b>下载并解压扩展</b>
-          <div class="hint" style="margin:4px 0 9px">
-            解压到一个你不会删掉的目录，比如 <code>D:\muse2api-extension</code>。
+          <b data-i18n="ck.dl">Download and unzip the extension</b>
+          <div class="hint" style="margin:4px 0 9px" data-i18n="ck.step1hint">
+            Unzip it to a folder you will not delete, e.g. <code>D:\muse2api-extension</code>.
           </div>
-          <a class="btnlike" href="/admin/extension" download>⬇ 下载 muse2api-extension.zip</a>
-          <button class="ghost mini" onclick="loadExtFiles()">查看包含哪些文件</button>
+          <a class="btnlike" href="/admin/extension" download data-i18n="ck.dlBtn">⬇ Download muse2api-extension.zip</a>
+          <button class="ghost mini" onclick="loadExtFiles()" data-i18n="ck.showFiles">Show included files</button>
           <span class="hint" id="extFiles" style="margin-left:8px"></span>
         </div>
       </div>
@@ -383,15 +383,15 @@
       <div class="stepbox">
         <div class="stepno">2</div>
         <div>
-          <b>在浏览器里加载扩展</b>
-          <div class="hint" style="margin:4px 0 9px">
-            以 Chrome 为例（Edge / Brave / 360 极速 等 Chromium 内核浏览器步骤类似）：
+          <b data-i18n="ck.load">Load the extension in your browser</b>
+          <div class="hint" style="margin:4px 0 9px" data-i18n="ck.step2hint">
+            Using Chrome as an example (Edge, Brave and other Chromium browsers are similar):
           </div>
           <ol class="olsteps">
-            <li>地址栏输入 <code>chrome://extensions</code> 回车</li>
-            <li>打开右上角 <b>开发者模式</b> 开关</li>
-            <li>点左上角 <b>加载已解压的扩展程序</b></li>
-            <li>选中第 1 步解压出来的<b>文件夹</b>（不是里面的单个文件）</li>
+            <li data-i18n="ck.s21">Type <code>chrome://extensions</code> in the address bar and press Enter</li>
+            <li data-i18n="ck.s22">Turn on <b>Developer mode</b> (top right)</li>
+            <li data-i18n="ck.s23">Click <b>Load unpacked</b> (top left)</li>
+            <li data-i18n="ck.s24">Select the <b>folder</b> you unzipped in step 1 (not an individual file inside it)</li>
           </ol>
         </div>
       </div>
@@ -399,25 +399,25 @@
       <div class="stepbox">
         <div class="stepno">3</div>
         <div>
-          <b>登录 muse.ai，然后点扩展图标导入</b>
-          <div class="hint" style="margin:4px 0 9px">
-            先在你自己的浏览器里打开 <code>https://muse.ai/</code> 并登录
-            （登录到能看到聊天界面为止），再点浏览器工具栏上的扩展图标，
-            把下面两项填进去，点「读取并导入」。
+          <b data-i18n="ck.login">Log in to muse.ai, then import via the extension icon</b>
+          <div class="hint" style="margin:4px 0 9px" data-i18n="ck.step3hint">
+            First open <code>https://muse.ai/</code> in your own browser and log in
+            (until you can see the chat UI), then click the extension icon in the toolbar,
+            fill in the two values below, and click Read and import.
           </div>
           <div class="row">
             <div style="flex:3">
-              <label>BASE URL（填进扩展）</label>
+              <label data-i18n="ck.exBase">BASE URL (paste into extension)</label>
               <div class="copyline">
                 <input type="text" id="exBase" readonly>
-                <button class="ghost mini" onclick="copyEl('exBase')">复制</button>
+                <button class="ghost mini" onclick="copyEl('exBase')" data-i18n="ck.cpBase">Copy</button>
               </div>
             </div>
             <div style="flex:3">
-              <label>API Key（填进扩展）</label>
+              <label data-i18n="ck.exKey">API Key (paste into extension)</label>
               <div class="copyline">
                 <input type="text" id="exKey" readonly>
-                <button class="ghost mini" onclick="copyExKey()">复制</button>
+                <button class="ghost mini" onclick="copyExKey()" data-i18n="ck.cpKey">Copy</button>
               </div>
             </div>
           </div>
@@ -426,232 +426,232 @@
     </div>
 
     <div class="card">
-      <h3>方式二：手动复制 <span class="tag">零安装 · 兜底</span></h3>
-      <div class="hint">
-        不想装扩展的话，可以手动把 cookie 串抠出来。关键是用
-        <b>「网络」面板的请求标头</b>，而不是 Console —— 请求头里的
-        <code>cookie:</code> 一行<b>包含 httpOnly 的那几条</b>，Console 读不到。
+      <h3 data-i18n="ck.opt2">Option 2: Copy manually <span class="tag">No install, fallback</span></h3>
+      <div class="hint" data-i18n="ck.opt2hint">
+        If you would rather not install the extension, you can grab the cookie string by hand. The key is to use
+        the <b>request headers in the Network panel</b>, not the Console — the
+        <code>cookie:</code> line <b>includes the httpOnly cookies</b> that the Console cannot see.
       </div>
       <ol class="olsteps" style="margin-top:10px">
-        <li>在你自己的浏览器里打开并登录 <code>https://muse.ai/</code>，停在聊天界面</li>
-        <li>按 <kbd>F12</kbd> 打开开发者工具，切到 <b>网络 / Network</b> 面板</li>
-        <li>按 <kbd>F5</kbd> 刷新页面，让请求列表出现内容</li>
-        <li>点列表里<b>任意一条 muse.ai 的请求</b>（第一个就行）</li>
-        <li>右侧找到 <b>标头 / Headers</b> → 往下滚到 <b>请求标头 / Request Headers</b></li>
-        <li>找到以 <code>cookie:</code> 开头的那一行，<b>把冒号后面的整串复制</b>
-            （从 <code>hatch_sess=</code> 开始，一直到行尾）</li>
-        <li>粘到下面「方式三」的输入框里，点导入</li>
+        <li data-i18n="ck.m21">Open and log in to <code>https://muse.ai/</code> in your own browser; stay on the chat page</li>
+        <li data-i18n="ck.m22">Press <kbd>F12</kbd> to open DevTools and switch to the <b>Network</b> panel</li>
+        <li data-i18n="ck.m23">Press <kbd>F5</kbd> to reload so requests appear</li>
+        <li data-i18n="ck.m24">Click <b>any muse.ai request</b> in the list (the first one works)</li>
+        <li data-i18n="ck.m25">On the right, find <b>Headers</b>, then scroll to <b>Request Headers</b></li>
+        <li data-i18n="ck.m26">Find the line starting with <code>cookie:</code> and <b>copy everything after the colon</b>
+            (from <code>hatch_sess=</code> to the end of the line)</li>
+        <li data-i18n="ck.m27">Paste it into the Option 3 box below and import</li>
       </ol>
-      <div class="hint" style="margin-top:10px;color:var(--warn)">
-        注意：是<b>请求标头</b>里的 <code>cookie:</code>，不是「响应标头」。
-        响应标头里的 <code>set-cookie</code> 只有部分 cookie，会缺东西。
+      <div class="hint" style="margin-top:10px;color:var(--warn)" data-i18n="ck.reqWarn">
+        Note: use the <code>cookie:</code> in the <b>request</b> headers, not the response headers.
+        The <code>set-cookie</code> in response headers only carries some cookies — you will be missing pieces.
       </div>
     </div>
 
     <div class="card">
-      <h3>方式三：粘贴导入 / 本机脚本 <span class="tag">进阶</span></h3>
-      <div class="hint">已经拿到 cookie 串的话，直接粘在这里导入（方式二手动复制的串也粘这里）。</div>
+      <h3 data-i18n="ck.opt3">Option 3: Paste import / local script <span class="tag">Advanced</span></h3>
+      <div class="hint" data-i18n="ck.opt3hint">If you already have a cookie string, paste it here to import (including strings copied manually in Option 2).</div>
       <div class="row" style="margin-top:10px">
         <div style="max-width:230px">
-          <label>账号标签</label>
-          <input type="text" id="mLabel" placeholder="例如 acc-01">
+          <label data-i18n="ck.mLbl">Account label</label>
+          <input type="text" id="mLabel" data-i18n-ph="ck.mLblPh" placeholder="e.g. acc-01">
         </div>
         <div style="flex:3">
-          <label>Cookie 字符串</label>
-          <textarea id="mCookie" rows="3" placeholder="hatch_sess=...; hatch_gw=...; hatch_vml=...; hatch_native_auth_device=..."></textarea>
+          <label data-i18n="pool.ckLbl">Cookie string</label>
+          <textarea id="mCookie" rows="3" data-i18n-ph="ck.mCkPh" placeholder="hatch_sess=...; hatch_gw=...; hatch_vml=...; hatch_native_auth_device=..."></textarea>
         </div>
       </div>
       <div style="margin-top:12px">
-        <button class="primary-lg" onclick="addAccount(true)">导入账号</button>
+        <button class="primary-lg" onclick="addAccount(true)" data-i18n="ck.import">Import</button>
       </div>
 
-      <div class="hint" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
-        如果你习惯命令行、或者想用独立浏览器登录（不碰日常浏览器），也可以用这个脚本。
-        它只用 Python 标准库，<b>不需要 pip 安装任何东西</b>。
+      <div class="hint" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)" data-i18n="ck.cliHint">
+        If you prefer the command line, or want to log in with a separate browser (leaving your daily browser untouched), use this script.
+        It only uses the Python standard library — <b>nothing to pip-install</b>.
       </div>
       <div class="row" style="margin-top:10px">
         <div style="flex:2">
-          <label>① 下载脚本</label>
+          <label data-i18n="ck.s1">1. Download the script</label>
           <div class="copyline">
-            <a class="btnlike ghostlike" href="/admin/cookie-helper?download=1" download>⬇ get_muse_cookie.py</a>
-            <a class="btnlike ghostlike" href="/admin/cookie-helper" target="_blank">查看源码</a>
+            <a class="btnlike ghostlike" href="/admin/cookie-helper?download=1" download data-i18n="ck.pyDl">⬇ get_muse_cookie.py</a>
+            <a class="btnlike ghostlike" href="/admin/cookie-helper" target="_blank" data-i18n="ck.viewSrc">View source</a>
           </div>
         </div>
         <div style="flex:4;min-width:0">
-          <label>② 运行（地址和密钥已帮你填好）</label>
-          <pre class="code" id="cmdBox"><span class="cp" onclick="copyCmd()">复制</span><span id="cmdText">正在生成命令…</span></pre>
+          <label data-i18n="ck.s2">2. Run (URL and key pre-filled)</label>
+          <pre class="code" id="cmdBox"><span class="cp" onclick="copyCmd()" data-i18n="ck.cpCmd">Copy</span><span id="cmdText" data-i18n="ck.cmdGen">Generating command…</span></pre>
         </div>
       </div>
-      <div class="hint" style="margin-top:8px">
-        ③ 在弹出的浏览器窗口里登录 muse.ai → 脚本自动抓取并上传 → 自动关窗。
+      <div class="hint" style="margin-top:8px" data-i18n="ck.step3">
+        3. Log in to muse.ai in the popup browser window, the script captures and uploads automatically, then the window closes.
       </div>
     </div>
 
     <div class="card">
-      <h3>Cookie 有效期说明 <span class="tag">实测</span></h3>
-      <div class="hint" style="margin:0 0 12px">
-        实测 muse.ai 各条 cookie 的有效期（不同账号可能略有差异）：
+      <h3 data-i18n="ck.life">Cookie lifetime notes <span class="tag">Measured</span></h3>
+      <div class="hint" style="margin:0 0 12px" data-i18n="ck.lifeHint">
+        Measured lifetimes of each muse.ai cookie (may vary slightly per account):
       </div>
       <div class="tblwrap"><table>
-        <thead><tr><th>cookie</th><th>httpOnly</th><th>实测有效期</th><th>作用</th></tr></thead>
+        <thead><tr><th data-i18n="ck.thCk">Cookie</th><th data-i18n="ck.thHttp">httpOnly</th><th data-i18n="ck.thLife">Measured lifetime</th><th data-i18n="ck.thRole">Role</th></tr></thead>
         <tbody>
-          <tr><td class="mono">hatch_sess</td><td>是</td><td><b style="color:var(--ok)">约 30 天</b></td><td>主会话，决定能不能登录</td></tr>
-          <tr><td class="mono">hatch_gw</td><td>是</td><td><b style="color:var(--ok)">约 1 年</b></td><td>网关令牌</td></tr>
-          <tr><td class="mono">hatch_vml</td><td>是</td><td><b style="color:var(--bad)">约 2 天</b></td><td>短效校验令牌，<b>决定账号寿命</b></td></tr>
-          <tr><td class="mono">hatch_native_auth_device</td><td>是</td><td><b style="color:var(--ok)">约 30 天</b></td><td>设备标识（匿名访客也有，不是登录凭证）</td></tr>
+          <tr><td class="mono">hatch_sess</td><td data-i18n="ck.yes">Yes</td><td><b style="color:var(--ok)" data-i18n="ck.rSessT">~30 days</b></td><td data-i18n="ck.rSessR">Main session; decides whether login works</td></tr>
+          <tr><td class="mono">hatch_gw</td><td data-i18n="ck.yes">Yes</td><td><b style="color:var(--ok)" data-i18n="ck.rGwT">~1 year</b></td><td data-i18n="ck.rGwR">Gateway token</td></tr>
+          <tr><td class="mono">hatch_vml</td><td data-i18n="ck.yes">Yes</td><td><b style="color:var(--bad)" data-i18n="ck.rVmlT">~2 days</b></td><td data-i18n="ck.rVmlR">Short-lived verification token; <b>sets account lifetime</b></td></tr>
+          <tr><td class="mono">hatch_native_auth_device</td><td data-i18n="ck.yes">Yes</td><td><b style="color:var(--ok)" data-i18n="ck.rDevT">~30 days</b></td><td data-i18n="ck.rDevR">Device ID (anonymous visitors have one too; not a login credential)</td></tr>
         </tbody>
       </table></div>
-      <div class="hint" style="margin:12px 0 0;line-height:1.85">
-        <b>账号实际能活多久？</b>取决于最早过期的那条核心 cookie，也就是
-        <code>hatch_vml</code> —— 大约 <b>2 天</b>。<br>
-        <b style="color:var(--warn)">注意：这个 2 天不会因为「用得多」而延长。</b>
-        本服务每次生成完成后确实会把 muse.ai 新下发的 cookie 读回来写进账号池
-        （所以你会看到「有效期」列的数值有更新），但核心 cookie 的到期时间
-        <b>不会被推后</b>（已做生成前后对照实验确认）。<br>
-        <b>所以：大约每 2 天要重新导入一次。</b>好在很快 —— 点一下扩展图标就行。<br>
-        <b>建议一次多导几个账号</b>：账号池按「最久未用」轮转，多账号既更稳，
-        也能把重导摊开（每天导一个，而不是所有账号同时失效）。<br>
-        <b>什么时候要重导？</b>账号列表里「有效期」变成
-        <span class="badge bad">已过期</span>、状态变成
-        <span class="badge bad">异常</span>，或出现「缺核心」标记时。
+      <div class="hint" style="margin:12px 0 0;line-height:1.85" data-i18n="ck.lifeBody">
+        <b>How long does an account actually last?</b> It depends on the earliest-expiring core cookie, i.e.
+        <code>hatch_vml</code> — about <b>2 days</b>.<br>
+        <b style="color:var(--warn)">Note: heavy usage does NOT extend this 2-day window.</b>
+        After each generation this service does read back the freshly issued muse.ai cookies into the pool
+        (so you will see the Expiry column change), but the core cookie expiry
+        is <b>not extended</b> (confirmed by before/after generation experiments).<br>
+        <b>So: re-import roughly every 2 days.</b> Luckily it is quick — one click on the extension icon.<br>
+        <b>Import several accounts at once</b>: the pool rotates least-recently-used, so more accounts means more stability
+        and spreads out re-imports (one a day instead of everything expiring at once).<br>
+        <b>When to re-import?</b> When Expiry in the account list turns
+        <span class="badge bad">Expired</span> and status turns
+        <span class="badge bad">Unhealthy</span>, or a Missing core badge appears.
       </div>
     </div>
   </section>
 
-  <!-- ==================== 任务记录 ==================== -->
+  <!-- ==================== Tasks ==================== -->
   <section class="tab" id="tab-tasks">
     <div class="card">
-      <h3>生成任务记录 <span class="tag" id="taskCount">0</span></h3>
-      <div class="hint">生视频是异步任务，状态会从 queued → processing → succeeded / failed。</div>
+      <h3><span data-i18n="task.title">Generation tasks</span> <span class="tag" id="taskCount">0</span></h3>
+      <div class="hint" data-i18n="task.hint">Video generation is async; status goes queued → processing → succeeded / failed.</div>
       <div style="margin-bottom:12px;display:flex;gap:9px">
-        <button class="ghost mini" onclick="loadTasks()">刷新</button>
-        <button class="danger mini" onclick="clearTasks()">清空全部</button>
+        <button class="ghost mini" onclick="loadTasks()" data-i18n="task.refresh">Refresh</button>
+        <button class="danger mini" onclick="clearTasks()" data-i18n="task.clear">Clear all</button>
       </div>
       <div class="tblwrap"><table>
         <thead><tr>
-          <th>任务 ID</th><th>类型</th><th>提示词</th><th>状态</th>
-          <th>耗时</th><th>创建时间</th><th>结果 / 错误</th><th></th>
+          <th data-i18n="task.thId">Task ID</th><th data-i18n="task.thType">Type</th><th data-i18n="task.thPrompt">Prompt</th><th data-i18n="th.status">Status</th>
+          <th data-i18n="task.thElapsed">Elapsed</th><th data-i18n="task.thCreated">Created</th><th data-i18n="task.thRes">Result / error</th><th></th>
         </tr></thead>
-        <tbody id="taskBody"><tr><td colspan="8" class="empty">加载中…</td></tr></tbody>
+        <tbody id="taskBody" data-i18n="task.loading"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody>
       </table></div>
     </div>
   </section>
 
-  <!-- ==================== 媒体库 ==================== -->
+  <!-- ==================== Media ==================== -->
   <section class="tab" id="tab-media">
     <div class="card">
-      <h3>媒体库 <span class="tag" id="mediaCount">0</span></h3>
-      <div class="hint">所有已生成并落盘的图片 / 视频，可直接下载或把链接给下游项目使用。</div>
-      <div style="margin-bottom:14px"><button class="ghost mini" onclick="loadMedia()">刷新</button></div>
-      <div class="grid" id="mediaGrid"><div class="empty">加载中…</div></div>
+      <h3><span data-i18n="media.title">Media library</span> <span class="tag" id="mediaCount">0</span></h3>
+      <div class="hint" data-i18n="media.hint">All generated images/videos saved to disk — download directly or hand the links to downstream projects.</div>
+      <div style="margin-bottom:14px"><button class="ghost mini" onclick="loadMedia()" data-i18n="media.refresh">Refresh</button></div>
+      <div class="grid" id="mediaGrid" data-i18n="media.loading"><div class="empty">Loading…</div></div>
     </div>
   </section>
 
-  <!-- ==================== 接口测试 ==================== -->
+  <!-- ==================== Playground ==================== -->
   <section class="tab" id="tab-play">
     <div class="card">
-      <h3>在线生图测试 <span class="tag">POST /v1/images/generations</span></h3>
-      <div class="hint">真实调用 muse.ai 生成，图片约 10–30 秒返回。</div>
+      <h3 data-i18n="play.imgT">Image generation test <span class="tag">POST /v1/images/generations</span></h3>
+      <div class="hint" data-i18n="play.imgHint">Calls muse.ai for real; images return in about 10–30s.</div>
       <div class="row">
-        <div style="flex:3"><label>提示词</label>
-          <input type="text" id="imgPrompt" value="一只戴宇航头盔的柴犬，赛博朋克风格，霓虹灯背景"></div>
-        <div style="max-width:140px"><label>比例</label>
+        <div style="flex:3"><label data-i18n="play.prompt">Prompt</label>
+          <input type="text" id="imgPrompt" data-i18n-val="play.imgEx" value="A Shiba Inu wearing an astronaut helmet, cyberpunk style, neon background"></div>
+        <div style="max-width:140px"><label data-i18n="play.aspect">Aspect</label>
           <select id="imgSize"><option>1:1</option><option>16:9</option><option>9:16</option><option>4:3</option><option>3:4</option></select></div>
       </div>
-      <div style="margin-top:12px"><button class="primary-lg" id="imgBtn" onclick="runImage()">开始生成图片</button></div>
+      <div style="margin-top:12px"><button class="primary-lg" id="imgBtn" onclick="runImage()" data-i18n="play.genImg">Generate image</button></div>
       <div class="result" id="imgRes"></div>
     </div>
 
     <div class="card">
-      <h3>在线生视频测试 <span class="tag">POST /v1/videos</span></h3>
-      <div class="hint">异步任务，一般 60–120 秒完成，页面会自动轮询进度。</div>
+      <h3 data-i18n="play.vidT">Video generation test <span class="tag">POST /v1/videos</span></h3>
+      <div class="hint" data-i18n="play.vidHint">Async task, usually done in 60–120s; this page polls progress automatically.</div>
       <div class="row">
-        <div style="flex:3"><label>提示词</label>
-          <input type="text" id="vidPrompt" value="一只橙色小猫在草地上慢慢走动，阳光明媚"></div>
-        <div style="max-width:110px"><label>时长(秒)</label>
+        <div style="flex:3"><label data-i18n="play.prompt">Prompt</label>
+          <input type="text" id="vidPrompt" data-i18n-val="play.vidEx" value="An orange kitten walking slowly across a sunny meadow"></div>
+        <div style="max-width:110px"><label data-i18n="play.dur">Duration (s)</label>
           <input type="number" id="vidDur" value="5" min="1" max="30"></div>
-        <div style="max-width:140px"><label>比例</label>
+        <div style="max-width:140px"><label data-i18n="play.aspect">Aspect</label>
           <select id="vidSize"><option>16:9</option><option>9:16</option><option>1:1</option></select></div>
       </div>
-      <div style="margin-top:12px"><button class="primary-lg" id="vidBtn" onclick="runVideo()">开始生成视频</button></div>
+      <div style="margin-top:12px"><button class="primary-lg" id="vidBtn" onclick="runVideo()" data-i18n="play.genVid">Generate video</button></div>
       <div class="result" id="vidRes"></div>
     </div>
   </section>
 
-  <!-- ==================== 接入文档 ==================== -->
+  <!-- ==================== Integration docs ==================== -->
   <section class="tab" id="tab-docs">
     <div class="card doc">
-      <h3>接入说明</h3>
+      <h3 data-i18n="doc.title">Integration guide</h3>
       <div class="hint">
-        接口与 OpenAI 风格对齐，下游项目只需改 <code>base_url</code> 和 <code>api_key</code>。
-        <br>BASE URL：<code id="dBase">—</code>
+        <span data-i18n="doc.intro">The API mirrors OpenAI conventions — downstream projects only need to change <code>base_url</code> and <code>api_key</code>.</span>
+        <br><span data-i18n="doc.baseLbl">BASE URL：</span><code id="dBase">—</code>
       </div>
 
-      <h4>1. 可用模型</h4>
+      <h4 data-i18n="doc.h1">1. Available models</h4>
       <div class="tblwrap"><table>
-        <thead><tr><th>模型 ID</th><th>用途</th><th>接口</th></tr></thead>
+        <thead><tr><th data-i18n="doc.thModel">Model ID</th><th data-i18n="doc.thPurpose">Purpose</th><th data-i18n="doc.thEp">Endpoint</th></tr></thead>
         <tbody>
-          <tr><td class="mono">muse-spark</td><td>文本 / 代码对话（支持流式）</td><td class="mono">POST /v1/chat/completions<br>POST /v1/responses</td></tr>
-          <tr><td class="mono">muse-image</td><td>文生图 / 图像编辑</td><td class="mono">POST /v1/images/generations</td></tr>
-          <tr><td class="mono">muse-video</td><td>文生视频 / 图生视频</td><td class="mono">POST /v1/videos → GET /v1/videos/{id}</td></tr>
+          <tr><td class="mono">muse-spark</td><td data-i18n="doc.mSpark">Text / code chat (streaming supported)</td><td class="mono">POST /v1/chat/completions<br>POST /v1/responses</td></tr>
+          <tr><td class="mono">muse-image</td><td data-i18n="doc.mImg">Text-to-image / image editing</td><td class="mono">POST /v1/images/generations</td></tr>
+          <tr><td class="mono">muse-video</td><td data-i18n="doc.mVid">Text-to-video / image-to-video</td><td class="mono">POST /v1/videos → GET /v1/videos/{id}</td></tr>
         </tbody>
       </table></div>
-      <div class="hint" style="margin-top:6px">
-        这三个就是 Muse 系列的真实能力：<b>Muse Spark</b>（语言 / 代码）、<b>Muse Image</b>（生图）、
-        <b>Muse Video</b>（生视频）。muse.ai 网页是自动路由的 agent、界面没有模型选择器，
-        所以 <code>model</code> 字段只用于兼容下游 —— 传 <code>gpt-4o</code>、
-        <code>claude-sonnet-4</code>、<code>dall-e-3</code> 等常见名字会自动映射到对应能力。
+      <div class="hint" style="margin-top:6px" data-i18n="doc.mNote">
+        These three are the real Muse capabilities: <b>Muse Spark</b> (language/code), <b>Muse Image</b> (images),
+        <b>Muse Video</b> (video). The muse.ai web app routes via an agent with no model picker,
+        so the <code>model</code> field only exists for downstream compatibility — common names like <code>gpt-4o</code>,
+        <code>claude-sonnet-4</code> or <code>dall-e-3</code> are auto-mapped to the matching capability.
       </div>
 
-      <h4>2. 对话 / 写代码</h4>
-      <pre class="code"><span class="cp" onclick="cp(this)">复制</span><span class="c"># 非流式</span>
+      <h4 data-i18n="doc.h2">2. Chat / code</h4>
+      <pre class="code"><span class="cp" onclick="cp(this)" data-i18n="doc.cp">Copy</span><span class="c"># Non-streaming</span>
 curl -X POST <span class="s">"BASE/v1/chat/completions"</span> \
   -H <span class="s">"Authorization: Bearer $MUSE2API_KEY"</span> \
   -H <span class="s">"Content-Type: application/json"</span> \
-  -d <span class="s">'{"model":"muse-spark","messages":[{"role":"user","content":"写一个 Python 快排"}]}'</span>
+  -d <span class="s">'{"model":"muse-spark","messages":[{"role":"user","content":"Write a Python quicksort"}]}'</span>
 
-<span class="c"># 流式：加 "stream":true，返回标准 SSE（data: {...} / data: [DONE]）</span></pre>
+<span class="c"># Streaming: add "stream":true; returns standard SSE (data: {...} / data: [DONE])</span></pre>
 
-      <h4>3. 生图（curl）</h4>
-      <pre class="code"><span class="cp" onclick="cp(this)">复制</span>curl -X POST <span class="s">"BASE/v1/images/generations"</span> \
+      <h4 data-i18n="doc.h3">3. Images (curl)</h4>
+      <pre class="code"><span class="cp" onclick="cp(this)" data-i18n="doc.cp">Copy</span>curl -X POST <span class="s">"BASE/v1/images/generations"</span> \
   -H <span class="s">"Authorization: Bearer $MUSE2API_KEY"</span> \
   -H <span class="s">"Content-Type: application/json"</span> \
-  -d <span class="s">'{"prompt":"一只戴宇航头盔的柴犬","size":"1:1","response_format":"url"}'</span>
+  -d <span class="s">'{"prompt":"A Shiba Inu wearing an astronaut helmet","size":"1:1","response_format":"url"}'</span>
 
-<span class="c"># 返回</span>
+<span class="c"># Response</span>
 {<span class="k">"created"</span>:1790148495,<span class="k">"data"</span>:[{
-  <span class="k">"revised_prompt"</span>:<span class="s">"一只戴宇航头盔的柴犬"</span>,
+  <span class="k">"revised_prompt"</span>:<span class="s">"A Shiba Inu wearing an astronaut helmet"</span>,
   <span class="k">"url"</span>:<span class="s">"http://your-server:18610/v1/media/xxxx.webp"</span>,
   <span class="k">"kind"</span>:<span class="s">"image"</span>,<span class="k">"bytes"</span>:23860}]}
 
-<span class="c"># url 是完整绝对地址，可直接给下游渲染 / 下载；/v1/media/* 无需鉴权。</span>
-<span class="c"># 想要 base64 就传 "response_format":"b64_json"。</span></pre>
+<span class="c"># url is a full absolute URL, ready for downstream render/download; /v1/media/* needs no auth.</span>
+<span class="c"># For base64, pass "response_format":"b64_json".</span></pre>
 
-      <h4>4. 生视频（curl，异步）</h4>
-      <pre class="code"><span class="cp" onclick="cp(this)">复制</span><span class="c"># ① 创建任务</span>
+      <h4 data-i18n="doc.h4">4. Video (curl, async)</h4>
+      <pre class="code"><span class="cp" onclick="cp(this)" data-i18n="doc.cp">Copy</span><span class="c"># 1. Create the task</span>
 curl -X POST <span class="s">"BASE/v1/videos"</span> \
   -H <span class="s">"Authorization: Bearer $MUSE2API_KEY"</span> \
   -H <span class="s">"Content-Type: application/json"</span> \
-  -d <span class="s">'{"prompt":"一只小猫在草地上走动","duration":5,"size":"16:9"}'</span>
+  -d <span class="s">'{"prompt":"A kitten walking across a meadow","duration":5,"size":"16:9"}'</span>
 <span class="c"># → {"id":"task_xxx","status":"queued"}</span>
 
-<span class="c"># ② 轮询结果</span>
+<span class="c"># 2. Poll the result</span>
 curl <span class="s">"BASE/v1/videos/task_xxx"</span> -H <span class="s">"Authorization: Bearer $MUSE2API_KEY"</span>
 <span class="c"># → {"status":"succeeded","result":{"url":"/v1/media/xxx.mp4"}}</span></pre>
 
-      <h4>5. Python（openai SDK 兼容）</h4>
-      <pre class="code"><span class="cp" onclick="cp(this)">复制</span><span class="k">from</span> openai <span class="k">import</span> OpenAI
+      <h4 data-i18n="doc.h5">5. Python (OpenAI SDK compatible)</h4>
+      <pre class="code"><span class="cp" onclick="cp(this)" data-i18n="doc.cp">Copy</span><span class="k">from</span> openai <span class="k">import</span> OpenAI
 <span class="k">import</span> time
 
 client = OpenAI(base_url=<span class="s">"BASE/v1"</span>, api_key=<span class="s">"m2a_..."</span>)
 
-<span class="c"># 生图</span>
-r = client.images.generate(model=<span class="s">"muse-image"</span>, prompt=<span class="s">"一只戴宇航头盔的柴犬"</span>)
+<span class="c"># Image</span>
+r = client.images.generate(model=<span class="s">"muse-image"</span>, prompt=<span class="s">"A Shiba Inu wearing an astronaut helmet"</span>)
 <span class="k">print</span>(r.data[<span class="s">0</span>].url)
 
-<span class="c"># 生视频（走原生接口，因为是异步任务）</span>
+<span class="c"># Video (native endpoint, since it is async)</span>
 <span class="k">import</span> requests
-t = requests.post(<span class="s">"BASE/v1/videos"</span>, json={<span class="s">"prompt"</span>:<span class="s">"小猫走动"</span>,<span class="s">"duration"</span>:<span class="s">5</span>},
+t = requests.post(<span class="s">"BASE/v1/videos"</span>, json={<span class="s">"prompt"</span>:<span class="s">"Kitten walking"</span>,<span class="s">"duration"</span>:<span class="s">5</span>},
                   headers={<span class="s">"Authorization"</span>:<span class="s">"Bearer m2a_..."</span>}).json()
 <span class="k">while</span> <span class="k">True</span>:
     s = requests.get(<span class="s">f"BASE/v1/videos/{t['id']}"</span>,
@@ -660,94 +660,896 @@ t = requests.post(<span class="s">"BASE/v1/videos"</span>, json={<span class="s"
     time.sleep(<span class="s">5</span>)
 <span class="k">print</span>(s)</pre>
 
-      <h4>6. 管理接口</h4>
+      <h4 data-i18n="doc.h6">6. Admin API</h4>
       <div class="tblwrap"><table>
-        <thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
+        <thead><tr><th data-i18n="doc.thMethod">Method</th><th data-i18n="doc.thPath">Path</th><th data-i18n="doc.thDesc">Description</th></tr></thead>
         <tbody>
-          <tr><td class="mono">GET</td><td class="mono">/admin/status</td><td>服务总览 + 账号池 + 最近任务</td></tr>
-          <tr><td class="mono">GET</td><td class="mono">/admin/accounts</td><td>账号列表</td></tr>
-          <tr><td class="mono">POST</td><td class="mono">/admin/accounts</td><td>添加账号（单条 / batch 批量文本）</td></tr>
-          <tr><td class="mono">PATCH</td><td class="mono">/admin/accounts/{id}</td><td>改标签 / 启用禁用</td></tr>
-          <tr><td class="mono">DELETE</td><td class="mono">/admin/accounts/{id}</td><td>删除账号</td></tr>
-          <tr><td class="mono">POST</td><td class="mono">/admin/accounts/{id}/test</td><td>真实校验会话有效性（顺带刷新额度）</td></tr>
-          <tr><td class="mono">POST</td><td class="mono">/admin/accounts/{id}/quota</td><td>实时读取该账号剩余额度</td></tr>
-          <tr><td class="mono">POST</td><td class="mono">/admin/accounts/{id}/cookies</td><td>更新该账号 cookie</td></tr>
-          <tr><td class="mono">GET</td><td class="mono">/admin/tasks</td><td>任务记录</td></tr>
-          <tr><td class="mono">GET</td><td class="mono">/admin/media</td><td>媒体库列表</td></tr>
+          <tr><td class="mono">GET</td><td class="mono">/admin/status</td><td data-i18n="doc.aStatus">Service overview + account pool + recent tasks</td></tr>
+          <tr><td class="mono">GET</td><td class="mono">/admin/accounts</td><td data-i18n="doc.aList">Account list</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/admin/accounts</td><td data-i18n="doc.aAdd">Add accounts (single / batch text)</td></tr>
+          <tr><td class="mono">PATCH</td><td class="mono">/admin/accounts/{id}</td><td data-i18n="doc.aPatch">Rename label / enable-disable</td></tr>
+          <tr><td class="mono">DELETE</td><td class="mono">/admin/accounts/{id}</td><td data-i18n="doc.aDel">Delete account</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/admin/accounts/{id}/test</td><td data-i18n="doc.aTest">Verify session for real (also refreshes quota)</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/admin/accounts/{id}/quota</td><td data-i18n="doc.aQuota">Read this account's remaining quota live</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/admin/accounts/{id}/cookies</td><td data-i18n="doc.aCookies">Update this account's cookies</td></tr>
+          <tr><td class="mono">GET</td><td class="mono">/admin/tasks</td><td data-i18n="doc.aTasks">Task history</td></tr>
+          <tr><td class="mono">GET</td><td class="mono">/admin/media</td><td data-i18n="doc.aMedia">Media library listing</td></tr>
         </tbody>
       </table></div>
 
-      <h4>7. 鉴权</h4>
-      <div class="hint" style="margin:0">
-        除 <code>/healthz</code>、<code>/readyz</code>、<code>/v1/media/*</code> 外，其余接口均需
-        <code>Authorization: Bearer &lt;API Key&gt;</code>。API Key 在服务器
-        <code>/opt/muse2api/.env</code> 的 <code>MUSE2API_KEY</code> 中配置。
+      <h4 data-i18n="doc.h7">7. Auth</h4>
+      <div class="hint" style="margin:0" data-i18n="doc.auth">
+        All endpoints except <code>/healthz</code>, <code>/readyz</code>, and <code>/v1/media/*</code> require
+        <code>Authorization: Bearer &lt;API Key&gt;</code>. The API Key lives on the server in
+        <code>/opt/muse2api/.env</code> as <code>MUSE2API_KEY</code>.
       </div>
 
-      <h4>8. 接入各类客户端 / 智能体</h4>
-      <div class="hint">
-        凡是支持「自定义 OpenAI 兼容端点」的客户端，都只填三个值就能用：
+      <h4 data-i18n="doc.h8">8. Connecting clients / agents</h4>
+      <div class="hint" data-i18n="doc.cliHint">
+        Any client that supports a custom OpenAI-compatible endpoint works with just three values:
       </div>
       <div class="tblwrap" style="margin-top:8px"><table>
-        <thead><tr><th>配置项</th><th>填什么</th></tr></thead>
+        <thead><tr><th data-i18n="doc.thSet">Setting</th><th data-i18n="doc.thVal">Value</th></tr></thead>
         <tbody>
-          <tr><td>Base URL / API 地址</td><td class="mono">http://&lt;你的服务器IP或域名&gt;:18610/v1</td></tr>
-          <tr><td>API Key</td><td class="mono">m2a_...（本页顶部「接入信息」里那个）</td></tr>
-          <tr><td>模型名</td><td class="mono">muse-spark</td></tr>
+          <tr><td data-i18n="doc.sBase">Base URL</td><td class="mono">http://&lt;your-server-ip-or-domain&gt;:18610/v1</td></tr>
+          <tr><td data-i18n="doc.sKey">API Key</td><td class="mono">m2a_... (the one in Connection info at the top of this page)</td></tr>
+          <tr><td data-i18n="doc.sModel">Model name</td><td class="mono">muse-spark</td></tr>
         </tbody>
       </table></div>
 
-      <div class="hint" style="margin-top:14px">
-        <b>模型名随便填也能用</b>：常见名字（<code>gpt-4o</code>、<code>gpt-5</code>、
-        <code>claude-sonnet-4</code>、<code>deepseek-chat</code>、<code>gemini-2.5-pro</code> 等）
-        会自动映射到对应能力；完全没见过的名字会原样透传，muse.ai 那边本来就是自动路由，
-        不影响结果。
+      <div class="hint" style="margin-top:14px" data-i18n="doc.anyModel">
+        <b>Any model name works</b>: common names (<code>gpt-4o</code>, <code>gpt-5</code>,
+        <code>claude-sonnet-4</code>, <code>deepseek-chat</code>, <code>gemini-2.5-pro</code>, etc.)
+        are auto-mapped to the matching capability; unknown names pass through untouched, and since muse.ai routes automatically anyway,
+        results are unaffected.
       </div>
 
-      <h4 style="margin-top:18px">按客户端类型看能不能用</h4>
+      <h4 style="margin-top:18px" data-i18n="doc.hCompat">Compatibility by client type</h4>
       <div class="tblwrap"><table>
-        <thead><tr><th>客户端类型</th><th>依赖能力</th><th>状态</th></tr></thead>
+        <thead><tr><th data-i18n="doc.thClient">Client type</th><th data-i18n="doc.thCap">Required capability</th><th data-i18n="th.status">Status</th></tr></thead>
         <tbody>
-          <tr><td>对话 / 聊天类（桌面端、Web UI、浏览器插件）</td><td class="mono">POST /v1/chat/completions</td><td><span class="badge ok">✅ 可用</span></td></tr>
-          <tr><td>流式输出（打字机效果）</td><td class="mono">stream:true（标准 SSE）</td><td><span class="badge ok">✅ 可用</span></td></tr>
-          <tr><td>代码补全 / 内联补全插件</td><td class="mono">POST /v1/chat/completions</td><td><span class="badge ok">✅ 可用</span></td></tr>
-          <tr><td>翻译 / 总结 / 解释类工具</td><td class="mono">POST /v1/chat/completions</td><td><span class="badge ok">✅ 可用</span></td></tr>
-          <tr><td>画图类客户端</td><td class="mono">POST /v1/images/generations</td><td><span class="badge ok">✅ 可用</span></td></tr>
-          <tr><td>视频生成客户端</td><td class="mono">POST /v1/videos（异步轮询）</td><td><span class="badge ok">✅ 可用</span></td></tr>
-          <tr><td>需要「工具调用」的自主 Agent 模式</td><td class="mono">tool_calls / function calling</td><td><span class="badge warn">⚠️ 不可用</span></td></tr>
+          <tr><td data-i18n="doc.cChat">Chat clients (desktop, Web UI, browser extensions)</td><td class="mono">POST /v1/chat/completions</td><td><span class="badge ok" data-i18n="doc.supported">✅ Supported</span></td></tr>
+          <tr><td data-i18n="doc.cStream">Streaming output (typewriter effect)</td><td class="mono">stream:true (standard SSE)</td><td><span class="badge ok" data-i18n="doc.supported">✅ Supported</span></td></tr>
+          <tr><td data-i18n="doc.cCode">Code / inline completion plugins</td><td class="mono">POST /v1/chat/completions</td><td><span class="badge ok" data-i18n="doc.supported">✅ Supported</span></td></tr>
+          <tr><td data-i18n="doc.cTools">Translation / summary / explainer tools</td><td class="mono">POST /v1/chat/completions</td><td><span class="badge ok" data-i18n="doc.supported">✅ Supported</span></td></tr>
+          <tr><td data-i18n="doc.cImg">Image clients</td><td class="mono">POST /v1/images/generations</td><td><span class="badge ok" data-i18n="doc.supported">✅ Supported</span></td></tr>
+          <tr><td data-i18n="doc.cVid">Video generation clients</td><td class="mono">POST /v1/videos(async polling)</td><td><span class="badge ok" data-i18n="doc.supported">✅ Supported</span></td></tr>
+          <tr><td data-i18n="doc.cAgent">Autonomous agent mode needing tool calls</td><td class="mono">tool_calls / function calling</td><td><span class="badge warn" data-i18n="doc.unsupported">⚠️ Unsupported</span></td></tr>
         </tbody>
       </table></div>
 
-      <div class="hint" style="margin-top:8px">
-        <b>关于「工具调用」这条限制（重要，已实测）：</b><br>
-        muse.ai 的网页助手对「输出伪工具调用 JSON」有明确的对齐拒绝策略 —— 实测原话是
-        「我不会按这种 JSON 格式输出'伪工具调用'——我没有 get_weather 这个工具」。
-        用三种不同措辞、不同位置的提示词协议去适配，全部失败。<br>
-        所以：依赖 <code>tool_calls</code> 的<b>自主 Agent 模式</b>（自动读写文件、执行命令那一类）接不了；
-        但所有<b>问答式</b>用法 —— 对话、写代码、解释、翻译、总结、生图、生视频 —— <b>全部完全可用</b>。<br>
-        客户端若强行带上 <code>tools</code> 字段，接口不会报错，会忽略工具声明、按普通对话正常回答。
+      <div class="hint" style="margin-top:8px" data-i18n="doc.toolLim">
+        <b>About the tool-calling limitation (important, verified):</b><br>
+        The muse.ai web assistant has an explicit alignment policy against emitting pseudo-tool-call JSON — the verbatim response in testing was
+        "I won't output pseudo tool calls in that JSON format — I don't have a get_weather tool."
+        Adapting with three different prompt protocols in different positions all failed.<br>
+        So: <b>autonomous agent mode</b> depending on <code>tool_calls</code> (auto file read/write, command execution) is not supported;
+        but all <b>Q-and-A style</b> uses — chat, coding, explaining, translating, summarizing, images, video — <b>all fully work</b>.<br>
+        If a client forces a <code>tools</code> field, the API will not error; it ignores the tool declarations and answers as a normal chat.
       </div>
     </div>
   </section>
 </main>
 
 <footer style="max-width:1280px;margin:18px auto 32px;padding:12px 24px;text-align:center;color:var(--muted);font-size:12px;border-top:1px solid var(--line)">
-  <span>开源仓库：<a href="https://github.com/czg86389-hub/muse2api" target="_blank" style="color:var(--acc);text-decoration:none">GitHub · muse2api</a></span>
+  <span data-i18n="ft.os">Open source: <a href="https://github.com/its-benjamin/muse2api" target="_blank" style="color:var(--acc);text-decoration:none">GitHub · its-benjamin/muse2api</a> (<a href="https://github.com/czg86389-hub/muse2api" target="_blank" style="color:var(--muted);text-decoration:none">upstream</a>)</span>
   <span style="margin:0 10px">·</span>
-  <span>社区认可与友情链接：<a href="https://linux.do/" target="_blank" style="color:var(--acc);text-decoration:none;font-weight:600">LINUX DO 社区 (https://linux.do/)</a></span>
+  <span data-i18n="ft.cm">Community credit and link:<a href="https://linux.do/" target="_blank" style="color:var(--acc);text-decoration:none;font-weight:600">LINUX DO (https://linux.do/)
+</a></span>
 </footer>
 
 <div id="toasts"></div>
 
 <script>
-/* ================= 基础 ================= */
+/* ================= Basics ================= */
 const $ = id => document.getElementById(id);
+/* ================= i18n ================= */
+const I18N = {
+  en: {
+    "meta.title": "muse2api · Account Pool Console",
+    "hdr.sub": "Muse web quota · reverse-proxy API",
+    "hdr.repo": "GitHub Repo",
+    "hdr.linuxdo": "LINUX DO",
+    "hdr.repoTip": "GitHub Repo (https://github.com/its-benjamin/muse2api) · Fork of czg86389-hub/muse2api",
+    "hdr.ldTip": "Community credit & link: LINUX DO (https://linux.do/)",
+    "hdr.verTip": "Check upstream release status and update notices",
+    "hdr.vercheck": "Version check",
+    "pill.svc": "<span class=\"led\"><\/span>Service <b>—<\/b>",
+    "pill.acc": "<span class=\"led\"><\/span>Accounts <b>—<\/b>",
+    "pill.br": "<span class=\"led\"><\/span>Browser <b>—<\/b>",
+    "pill.live": "<span class=\"led\"><\/span>Auto-refresh",
+    "key.lbl": "API Key",
+    "key.ph": "Paste a key starting with m2a_",
+    "key.save": "Save",
+    "upd.title": "A new muse2api upstream release is available!",
+    "upd.ver": "New version",
+    "upd.msg": "The upstream repo has new features or performance fixes. Click the button on the right to upgrade online in one click (local .env keys and pool data are preserved).",
+    "upd.go": "⚡ Upgrade online & restart",
+    "upd.view": "View changes",
+    "upd.later": "Later",
+    "repo.title": "Upstream version check & online upgrade",
+    "repo.badge.checking": "Checking…",
+    "repo.desc.loading": "Comparing the local version against the latest GitHub release… (online upgrades keep <code>.env<\/code> keys and <code>data/<\/code> pool & media files)",
+    "repo.pull": "⚡ Update from GitHub & restart",
+    "repo.check": "🔍 Check for updates now",
+    "repo.history": "Full commit history on GitHub ↗",
+    "auth.title": "Enter your API Key first so this page can load data",
+    "auth.body": "The API Key is this service's own \"access password\" — it stops strangers from spending your Muse quota.\n        It is <b style=\"color:var(--text)\">not<\/b> your Muse login password; it's a random string generated at deploy time (starting with <code>m2a_<\/code>).<br>\n        Paste it into the input at the top right and click \"Save\" — your browser remembers it, so you won't need to re-enter it.",
+    "tab.pool": "Accounts",
+    "tab.cookie": "Get Cookie",
+    "tab.tasks": "Tasks",
+    "tab.media": "Media",
+    "tab.play": "API Playground",
+    "tab.docs": "Integration Docs",
+    "pool.relogin": "Re-login",
+    "pool.conn": "Connection info <span class=\"tag\">Paste these two values into your project<\/span>",
+    "pool.connHint": "Paste the two values below into your project and you are ready to call. BASE URL is the API address prefix.",
+    "pool.copyBase": "Copy",
+    "pool.baseUrl": "BASE URL",
+    "pool.apiKey": "API Key",
+    "pool.show": "Show",
+    "pool.copyKey": "Copy",
+    "pool.regen": "Regenerate",
+    "pool.models": "Models: <code>muse-spark<\/code> (chat/code), <code>muse-image<\/code> (images), <code>muse-video<\/code> (video).\n        See the Integration Docs tab for full examples.",
+    "stat.total": "<div class=\"k\" data-i18n=\"stat.total\">Total accounts",
+    "stat.ok": "<div class=\"k\" data-i18n=\"stat.ok\">Healthy",
+    "stat.bad": "<div class=\"k\" data-i18n=\"stat.bad\">Faulty",
+    "stat.dis": "<div class=\"k\" data-i18n=\"stat.dis\">Disabled",
+    "stat.media": "<div class=\"k\" data-i18n=\"stat.media\">Media files",
+    "pool.add": "Add accounts <span class=\"tag\">Batch supported<\/span>",
+    "pool.addHint": "Paste cookies in any format: header string (hatch_sess=...; hatch_gw=...), Firefox DevTools JSON ({\"Request Cookies\": {...}}), or cookies.txt (Netscape format). Key cookies: <code>hatch_sess</code>, <code>hatch_gw</code>, <code>hatch_vml</code>. For batch import, one account per line as <code>label | cookie-string</code>.",
+    "pool.lblSingle": "Account label (single import)",
+    "pool.lblPh": "e.g. muse-main",
+    "pool.ckLbl": "Cookie string",
+    "ck.opt1": "Option 1: Browser extension <span class=\"tag\">Recommended, no CLI, all platforms<\/span>",
+    "ck.opt2": "Option 2: Copy manually <span class=\"tag\">No install, fallback<\/span>",
+    "ck.opt3": "Option 3: Paste import / local script <span class=\"tag\">Advanced<\/span>",
+    "ck.life": "Cookie lifetime notes <span class=\"tag\">Measured<\/span>",
+    "ck.dl": "Download and unzip the extension",
+    "ck.load": "Load the extension in your browser",
+    "ck.login": "Log in to muse.ai, then import via the extension icon",
+    "ck.dlBtn": "⬇ Download muse2api-extension.zip",
+    "ck.showFiles": "Show included files",
+    "ck.exBase": "BASE URL (paste into extension)",
+    "ck.exKey": "API Key (paste into extension)",
+    "ck.mLbl": "Account label",
+    "ck.mLblPh": "e.g. acc-01",
+    "ck.mCkPh": "hatch_sess=...; hatch_gw=...; hatch_vml=...; hatch_native_auth_device=...",
+    "ck.import": "Import",
+    "ck.s1": "1. Download the script",
+    "ck.s2": "2. Run (URL and key pre-filled)",
+    "ck.pyDl": "⬇ get_muse_cookie.py",
+    "ck.viewSrc": "View source",
+    "ck.cmdGen": "<span id=\"cmdText\" data-i18n=\"ck.cmdGen\">Generating command…",
+    "ck.cpCmd": "<span class=\"cp\" onclick=\"copyCmd()\" data-i18n=\"ck.cpCmd\">Copy",
+    "ck.thCk": "<th data-i18n=\"ck.thCk\">Cookie",
+    "ck.thHttp": "<th data-i18n=\"ck.thHttp\">httpOnly",
+    "ck.thLife": "<th data-i18n=\"ck.thLife\">Measured lifetime",
+    "ck.thRole": "<th data-i18n=\"ck.thRole\">Role",
+    "task.title": "Generation tasks",
+    "task.refresh": "Refresh",
+    "task.clear": "Clear all",
+    "task.thId": "Task ID",
+    "task.thType": "<th data-i18n=\"task.thType\">Type",
+    "task.thPrompt": "<th data-i18n=\"task.thPrompt\">Prompt",
+    "task.thElapsed": "Elapsed",
+    "task.thCreated": "<th data-i18n=\"task.thCreated\">Created",
+    "task.thRes": "<th data-i18n=\"task.thRes\">Result / error",
+    "task.loading": "<tr><td colspan=\"8\" class=\"empty\">Loading…<\/td><\/tr>",
+    "media.title": "Media library",
+    "media.refresh": "<button class=\"ghost mini\" onclick=\"loadMedia()\" data-i18n=\"media.refresh\">Refresh",
+    "media.loading": "<div class=\"empty\">Loading…<\/div>",
+    "play.imgT": "Image generation test <span class=\"tag\">POST /v1/images/generations<\/span>",
+    "play.vidT": "Video generation test <span class=\"tag\">POST /v1/videos<\/span>",
+    "play.prompt": "<label data-i18n=\"play.prompt\">Prompt",
+    "play.aspect": "<label data-i18n=\"play.aspect\">Aspect",
+    "play.dur": "<label data-i18n=\"play.dur\">Duration (s)",
+    "play.genImg": "<button class=\"primary-lg\" id=\"imgBtn\" onclick=\"runImage()\" data-i18n=\"play.genImg\">Generate image",
+    "play.genVid": "<button class=\"primary-lg\" id=\"vidBtn\" onclick=\"runVideo()\" data-i18n=\"play.genVid\">Generate video",
+    "doc.title": "Integration guide",
+    "pool.ckPh": "hatch_sess=...; hatch_gw=...; hatch_vml=...&#10;or batch:&#10;acc-01 | hatch_sess=...; hatch_gw=...&#10;acc-02 | hatch_sess=...; hatch_gw=...",
+    "pool.import": "Import",
+    "pool.clear": "Clear",
+    "pool.list": "Account list",
+    "pool.kaBadge": "● Auto-keepalive running (15m)",
+    "pool.kaAll": "⚡ Keep alive all accounts",
+    "pool.kaHint": "Background silent keepalive runs <b>every 15 minutes<\/b> with <b>fair multi-account rotation (LRU)<\/b>; Test opens muse.ai for a real session check.",
+    "th.label": "Label",
+    "th.accId": "<th data-i18n=\"th.accId\">Account ID",
+    "th.status": "<th data-i18n=\"th.status\">Status",
+    "th.expiry": "<th data-i18n=\"th.expiry\">Expiry",
+    "th.quota": "<th data-i18n=\"th.quota\">Quota",
+    "th.enabled": "<th data-i18n=\"th.enabled\">Enabled",
+    "th.cookies": "<th data-i18n=\"th.cookies\">Cookies",
+    "th.lastUsed": "Last used",
+    "th.note": "<th data-i18n=\"th.note\">Note",
+    "th.actions": "<th style=\"min-width:250px\" data-i18n=\"th.actions\">Actions",
+    "pool.loading": "<tr><td colspan=\"10\" class=\"empty\">Loading…<\/td><\/tr>",
+    "ck.extHint": "Use a small browser extension to sync the <b>muse.ai session you are already logged into on your own machine<\/b>.\n        No Python, no terminal, no commands.<br>\n        <b>Why an extension is required<\/b>: all 4 core muse.ai cookies carry the\n        <code>httpOnly<\/code> flag, so page scripts (<code>document.cookie<\/code> in F12,\n        bookmarklets) cannot read them; only a browser extension's <code>cookies<\/code> API can.",
+    "ck.step1hint": "Unzip it to a folder you will not delete, e.g. <code>D:\\muse2api-extension<\/code>.",
+    "ck.step2hint": "Using Chrome as an example (Edge, Brave and other Chromium browsers are similar):",
+    "ck.s21": "Type <code>chrome://extensions<\/code> in the address bar and press Enter",
+    "ck.s22": "Turn on <b>Developer mode<\/b> (top right)",
+    "ck.s23": "Click <b>Load unpacked<\/b> (top left)",
+    "ck.s24": "Select the <b>folder<\/b> you unzipped in step 1 (not an individual file inside it)",
+    "ck.step3hint": "First open <code>https://muse.ai/<\/code> in your own browser and log in\n            (until you can see the chat UI), then click the extension icon in the toolbar,\n            fill in the two values below, and click Read and import.",
+    "ck.opt2hint": "If you would rather not install the extension, you can grab the cookie string by hand. The key is to use\n        the <b>request headers in the Network panel<\/b>, not the Console — the\n        <code>cookie:<\/code> line <b>includes the httpOnly cookies<\/b> that the Console cannot see.",
+    "ck.m21": "Open and log in to <code>https://muse.ai/<\/code> in your own browser; stay on the chat page",
+    "ck.m22": "Press <kbd>F12<\/kbd> to open DevTools and switch to the <b>Network<\/b> panel",
+    "ck.m23": "Press <kbd>F5<\/kbd> to reload so requests appear",
+    "ck.m24": "Click <b>any muse.ai request<\/b> in the list (the first one works)",
+    "ck.m25": "On the right, find <b>Headers<\/b>, then scroll to <b>Request Headers<\/b>",
+    "ck.m26": "Find the line starting with <code>cookie:<\/code> and <b>copy everything after the colon<\/b>\n            (from <code>hatch_sess=<\/code> to the end of the line)",
+    "ck.m27": "Paste it into the Option 3 box below and import",
+    "ck.reqWarn": "Note: use the <code>cookie:<\/code> in the <b>request<\/b> headers, not the response headers.\n        The <code>set-cookie<\/code> in response headers only carries some cookies — you will be missing pieces.",
+    "ck.opt3hint": "If you already have a cookie string, paste it here to import (including strings copied manually in Option 2).",
+    "ck.cliHint": "If you prefer the command line, or want to log in with a separate browser (leaving your daily browser untouched), use this script.\n        It only uses the Python standard library — <b>nothing to pip-install<\/b>.",
+    "ck.step3": "3. Log in to muse.ai in the popup browser window, the script captures and uploads automatically, then the window closes.",
+    "ck.lifeHint": "Measured lifetimes of each muse.ai cookie (may vary slightly per account):",
+    "ck.yes": "<td data-i18n=\"ck.yes\">Yes",
+    "ck.lifeBody": "<b>How long does an account actually last?<\/b> It depends on the earliest-expiring core cookie, i.e.\n        <code>hatch_vml<\/code> — about <b>2 days<\/b>.<br>\n        <b style=\"color:var(--warn)\">Note: heavy usage does NOT extend this 2-day window.<\/b>\n        After each generation this service does read back the freshly issued muse.ai cookies into the pool\n        (so you will see the Expiry column change), but the core cookie expiry\n        is <b>not extended<\/b> (confirmed by before/after generation experiments).<br>\n        <b>So: re-import roughly every 2 days.<\/b> Luckily it is quick — one click on the extension icon.<br>\n        <b>Import several accounts at once<\/b>: the pool rotates least-recently-used, so more accounts means more stability\n        and spreads out re-imports (one a day instead of everything expiring at once).<br>\n        <b>When to re-import?<\/b> When Expiry in the account list turns\n        <span class=\"badge bad\">Expired<\/span> and status turns\n        <span class=\"badge bad\">Unhealthy<\/span>, or a Missing core badge appears.",
+    "task.hint": "Video generation is async; status goes queued → processing → succeeded / failed.",
+    "media.hint": "All generated images/videos saved to disk — download directly or hand the links to downstream projects.",
+    "play.imgHint": "Calls muse.ai for real; images return in about 10–30s.",
+    "play.vidHint": "Async task, usually done in 60–120s; this page polls progress automatically.",
+    "doc.intro": "The API mirrors OpenAI conventions — downstream projects only need to change <code>base_url<\/code> and <code>api_key<\/code>.",
+    "doc.h1": "1. Available models",
+    "doc.h2": "2. Chat / code",
+    "doc.h3": "3. Images (curl)",
+    "doc.h4": "4. Video (curl, async)",
+    "doc.h5": "5. Python (OpenAI SDK compatible)",
+    "doc.h6": "6. Admin API",
+    "doc.h7": "7. Auth",
+    "doc.h8": "8. Connecting clients / agents",
+    "doc.thModel": "<th data-i18n=\"doc.thModel\">Model ID",
+    "doc.thPurpose": "<th data-i18n=\"doc.thPurpose\">Purpose",
+    "doc.thEp": "<th data-i18n=\"doc.thEp\">Endpoint",
+    "doc.thMethod": "<th data-i18n=\"doc.thMethod\">Method",
+    "doc.thPath": "<th data-i18n=\"doc.thPath\">Path",
+    "doc.thDesc": "<th data-i18n=\"doc.thDesc\">Description",
+    "doc.thSet": "<th data-i18n=\"doc.thSet\">Setting",
+    "doc.thVal": "<th data-i18n=\"doc.thVal\">Value",
+    "doc.thClient": "<th data-i18n=\"doc.thClient\">Client type",
+    "doc.thCap": "<th data-i18n=\"doc.thCap\">Required capability",
+    "doc.mSpark": "<td data-i18n=\"doc.mSpark\">Text / code chat (streaming supported)",
+    "doc.mImg": "<td data-i18n=\"doc.mImg\">Text-to-image / image editing",
+    "doc.mVid": "<td data-i18n=\"doc.mVid\">Text-to-video / image-to-video",
+    "doc.mNote": "These three are the real Muse capabilities: <b>Muse Spark<\/b> (language/code), <b>Muse Image<\/b> (images),\n        <b>Muse Video<\/b> (video). The muse.ai web app routes via an agent with no model picker,\n        so the <code>model<\/code> field only exists for downstream compatibility — common names like <code>gpt-4o<\/code>,\n        <code>claude-sonnet-4<\/code> or <code>dall-e-3<\/code> are auto-mapped to the matching capability.",
+    "doc.auth": "All endpoints except <code>/healthz<\/code>, <code>/readyz<\/code>, and <code>/v1/media/*<\/code> require\n        <code>Authorization: Bearer &lt;API Key&gt;<\/code>. The API Key lives on the server in\n        <code>/opt/muse2api/.env<\/code> as <code>MUSE2API_KEY<\/code>.",
+    "doc.cliHint": "Any client that supports a custom OpenAI-compatible endpoint works with just three values:",
+    "doc.sBase": "<td data-i18n=\"doc.sBase\">Base URL",
+    "doc.sKey": "<td data-i18n=\"doc.sKey\">API Key",
+    "doc.sModel": "<td data-i18n=\"doc.sModel\">Model name",
+    "doc.anyModel": "<b>Any model name works<\/b>: common names (<code>gpt-4o<\/code>, <code>gpt-5<\/code>,\n        <code>claude-sonnet-4<\/code>, <code>deepseek-chat<\/code>, <code>gemini-2.5-pro<\/code>, etc.)\n        are auto-mapped to the matching capability; unknown names pass through untouched, and since muse.ai routes automatically anyway,\n        results are unaffected.",
+    "doc.hCompat": "Compatibility by client type",
+    "doc.toolLim": "<b>About the tool-calling limitation (important, verified):<\/b><br>\n        The muse.ai web assistant has an explicit alignment policy against emitting pseudo-tool-call JSON — the verbatim response in testing was\n        \"I won't output pseudo tool calls in that JSON format — I don't have a get_weather tool.\"\n        Adapting with three different prompt protocols in different positions all failed.<br>\n        So: <b>autonomous agent mode<\/b> depending on <code>tool_calls<\/code> (auto file read/write, command execution) is not supported;\n        but all <b>Q-and-A style<\/b> uses — chat, coding, explaining, translating, summarizing, images, video — <b>all fully work<\/b>.<br>\n        If a client forces a <code>tools<\/code> field, the API will not error; it ignores the tool declarations and answers as a normal chat.",
+    "doc.aStatus": "<td data-i18n=\"doc.aStatus\">Service overview + account pool + recent tasks",
+    "doc.aList": "<td data-i18n=\"doc.aList\">Account list",
+    "doc.aAdd": "<td data-i18n=\"doc.aAdd\">Add accounts (single / batch text)",
+    "doc.aPatch": "<td data-i18n=\"doc.aPatch\">Rename label / enable-disable",
+    "doc.aDel": "<td data-i18n=\"doc.aDel\">Delete account",
+    "doc.aTest": "<td data-i18n=\"doc.aTest\">Verify session for real (also refreshes quota)",
+    "doc.aQuota": "<td data-i18n=\"doc.aQuota\">Read this account's remaining quota live",
+    "doc.aCookies": "<td data-i18n=\"doc.aCookies\">Update this account's cookies",
+    "doc.aTasks": "<td data-i18n=\"doc.aTasks\">Task history",
+    "doc.aMedia": "<td data-i18n=\"doc.aMedia\">Media library listing",
+    "doc.cChat": "<td data-i18n=\"doc.cChat\">Chat clients (desktop, Web UI, browser extensions)",
+    "doc.cStream": "<td data-i18n=\"doc.cStream\">Streaming output (typewriter effect)",
+    "doc.cCode": "<td data-i18n=\"doc.cCode\">Code / inline completion plugins",
+    "doc.cTools": "<td data-i18n=\"doc.cTools\">Translation / summary / explainer tools",
+    "doc.cImg": "<td data-i18n=\"doc.cImg\">Image clients",
+    "doc.cVid": "<td data-i18n=\"doc.cVid\">Video generation clients",
+    "doc.cAgent": "<td data-i18n=\"doc.cAgent\">Autonomous agent mode needing tool calls",
+    "doc.supported": "<span class=\"badge ok\" data-i18n=\"doc.supported\">✅ Supported",
+    "doc.unsupported": "<span class=\"badge warn\" data-i18n=\"doc.unsupported\">⚠️ Unsupported",
+    "ft.os": "Open source: <a href=\"https://github.com/its-benjamin/muse2api\" target=\"_blank\" style=\"color:var(--acc);text-decoration:none\">GitHub · its-benjamin/muse2api<\/a> (<a href=\"https://github.com/czg86389-hub/muse2api\" target=\"_blank\" style=\"color:var(--muted);text-decoration:none\">upstream<\/a>)",
+    "ft.cm": "Community credit and link:<a href=\"https://linux.do/\" target=\"_blank\" style=\"color:var(--acc);text-decoration:none;font-weight:600\">LINUX DO (https://linux.do/)\n<\/a>",
+    "doc.cp": "<span class=\"cp\" onclick=\"cp(this)\" data-i18n=\"doc.cp\">Copy",
+    "ck.cpBase": "Copy",
+    "ck.cpKey": "Copy",
+    "play.imgEx": "A Shiba Inu wearing an astronaut helmet, cyberpunk style, neon background",
+    "play.vidEx": "An orange kitten walking slowly across a sunny meadow",
+    "doc.baseLbl": "BASE URL：",
+    "ck.rSessT": "<b style=\"color:var(--ok)\" data-i18n=\"ck.rSessT\">~30 days",
+    "ck.rSessR": "<td data-i18n=\"ck.rSessR\">Main session; decides whether login works",
+    "ck.rGwT": "<b style=\"color:var(--ok)\" data-i18n=\"ck.rGwT\">~1 year",
+    "ck.rGwR": "<td data-i18n=\"ck.rGwR\">Gateway token",
+    "ck.rVmlT": "<b style=\"color:var(--bad)\" data-i18n=\"ck.rVmlT\">~2 days",
+    "ck.rVmlR": "<td data-i18n=\"ck.rVmlR\">Short-lived verification token; <b>sets account lifetime<\/b>",
+    "ck.rDevT": "<b style=\"color:var(--ok)\" data-i18n=\"ck.rDevT\">~30 days",
+    "ck.rDevR": "<td data-i18n=\"ck.rDevR\">Device ID (anonymous visitors have one too; not a login credential)",
+    "js.signedIn": "✓ Signed in",
+    "js.keyRequired": "API Key required",
+    "js.keyCleared": "API Key cleared",
+    "js.keySaved": "API Key saved in this browser; auto-filled next time",
+    "js.keyBad": "API Key missing or incorrect",
+    "js.proxy502": "Reverse-proxy timeout (Nginx 502 Bad Gateway — usually the default 60s proxy_read_timeout; raise the proxy timeout to 600s)",
+    "js.copied": "Copied",
+    "js.clipboard": "Copied to clipboard",
+    "js.copyNone": "Nothing to copy",
+    "js.copyFail": "Copy failed — please select and copy manually",
+    "js.cmdNeedKey": "(Enter your API Key at the top right and the full command appears here)",
+    "js.show": "Show",
+    "js.hide": "Hide",
+    "js.loading": "Loading…",
+    "js.extFiles": "Contains {n} files: ",
+    "js.extEmpty": "(Extension directory is empty — check the deployment)",
+    "js.loadFail": "Load failed: {msg}",
+    "js.rotConfirm": "Regenerate the API Key?\n\nThe old key stops working immediately — connected downstream projects must update it or they will get 401.",
+    "js.rotDone": "New key generated and active; this page is updated",
+    "js.rotFail": "Regeneration failed: {msg}",
+    "js.unchecked": "Unchecked",
+    "js.qTip": "Not checked yet. Use Quota under Actions to query live",
+    "js.qPlan": "Plan: {p}",
+    "js.qReset": "Weekly reset: {v}",
+    "js.qUsed": "Weekly usage: {p}% used",
+    "js.qExtra": "Extra tokens: {v} left ({p}% used)",
+    "js.qChecked": "Checked: {v}",
+    "js.qUsedShort": "{p}% used",
+    "js.checking": "Checking…",
+    "js.quotaBtn": "Quota",
+    "js.quotaToast": "Quota: {plan} — weekly usage {p}%{extra}",
+    "js.quotaExtra": ", {v} extra left",
+    "js.quotaNone": "No quota data found in the settings page (its layout may have changed)",
+    "js.quotaFail": "Quota check failed: {msg}",
+    "js.expUnknown": "Unknown",
+    "js.expUnknownTip": "No expiry recorded",
+    "js.expEst": " (estimated from the ~2-day hatch_vml lifetime; no exact expires found)",
+    "js.expExact": " (measured hatch_vml expiry)",
+    "js.expired": "Expired",
+    "js.expiredAt": "expired {v}",
+    "js.expiresAt": "Expires: {v}",
+    "js.daysLeft": "{v}d left",
+    "js.hoursLeft": "{v}h left",
+    "js.svcName": "Service",
+    "js.accName": "Accounts",
+    "js.brName": "Browser",
+    "js.svcOk": "OK",
+    "js.brRun": "Running",
+    "js.brIdle": "Idle",
+    "js.brBlocked": "Blocked: running as Admin — restart unelevated",
+    "js.needSign": "Sign-in needed",
+    "js.accEmpty": "No accounts yet. Import one via the Get Cookie tab.",
+    "js.needKey": "🔑 Enter your API Key at the top right and click Save first",
+    "js.loadFail2": "Load failed: {msg}",
+    "js.moreN": " +{n} more",
+    "js.expiredN": "⚠️ <b>{dead} account(s) expired<\/b>{rest}.Expired accounts cannot generate — please log in again (about 30s).",
+    "js.expiredRest": ", plus {n} expiring soon ({names})",
+    "js.expiredOnly": " ({names})",
+    "js.soonWarn": "⏳ <b>{names}<\/b> expire(s) in under 12h. muse.ai sessions last about 2 days and usage does not extend them, so please re-login now to avoid surprise generation failures.",
+    "js.bDisabled": "Disabled",
+    "js.bHealthy": "● Healthy",
+    "js.bUnhealthy": "● Unhealthy",
+    "js.bUnchecked": "○ Unchecked",
+    "js.bMissing": "Missing core",
+    "js.bMissingTip": "Missing core cookies — cannot generate",
+    "js.bOn": "On",
+    "js.bOff": "Off",
+    "js.actTest": "Test",
+    "js.actKa": "Keepalive",
+    "js.actKaTip": "Silently refresh session tokens and expiry",
+    "js.actEnable": "Enable",
+    "js.actDisable": "Disable",
+    "js.actRename": "Rename",
+    "js.actUpdCk": "Update cookies",
+    "js.actDel": "Delete",
+    "js.sepNames": "、",
+    "js.ckFirst": "Paste a cookie string first",
+    "js.importedN": "Imported {n} account(s)",
+    "js.importFail": "Import failed: {msg}",
+    "js.testing": "Verifying the session against muse.ai for real…",
+    "js.testFail": "Test failed: {msg}",
+    "js.kaOne": "Renewing this account's session silently…",
+    "js.kaOk": "✓ Keepalive succeeded — new expiry saved",
+    "js.kaOneFail": "✗ Keepalive failed: {msg}",
+    "js.kaFail": "Keepalive failed: {msg}",
+    "js.kaAllBtn": "⚡ Keep alive all accounts",
+    "js.kaAllBusy": "Keeping alive…",
+    "js.kaAllToast": "Waking the headless browser for silent pool renewal…",
+    "js.kaBusy": "Keepalive is already running in the background — check back shortly",
+    "js.kaDone": "✓ Kept alive {r} account(s), skipped {s}",
+    "js.kaAllFail": "Keepalive run failed: {msg}",
+    "js.actEnabled": "Enabled",
+    "js.actDisabled": "Disabled",
+    "js.actFail": "Action failed: {msg}",
+    "js.renPrompt": "New account label:",
+    "js.renDone": "Label updated",
+    "js.renFail": "Rename failed: {msg}",
+    "js.ckPrompt": "Paste the latest cookie string for this account:",
+    "js.ckDone": "Cookies updated ({n})",
+    "js.ckFail": "Update failed: {msg}",
+    "js.delConfirm": "Delete account \"{label}\"? This cannot be undone.",
+    "js.deleted": "Deleted",
+    "js.delFail": "Delete failed: {msg}",
+    "js.noTasks": "No tasks yet",
+    "js.viewRes": "View result",
+    "js.taskDel": "Del",
+    "js.clearConfirm": "Clear all task records? (Generated media files are kept.)",
+    "js.clearedN": "Cleared {n} record(s)",
+    "js.clearFail": "Clear failed: {msg}",
+    "js.noMedia": "No media generated yet",
+    "js.open": "Open",
+    "js.dl": "Download",
+    "js.enterPrompt": "Enter a prompt first",
+    "js.generating": "Generating...",
+    "js.imgSubmit": "Submitting image task and polling status...",
+    "js.imgTimeout": "Waited over 15 minutes - check Tasks for the result instead of resubmitting",
+    "js.imgFail": "Image generation failed",
+    "js.pollFail": "Status polling is failing - check Tasks instead of resubmitting",
+    "js.done": "Done",
+    "js.failed": "Failed",
+    "js.genImg": "Generate image",
+    "js.genVid": "Generate video",
+    "js.vidCreate": "Creating video task...",
+    "js.vidFailCreate": "Failed to create task",
+    "js.vidWait": "Task {st} - waited {s}s (video usually takes 60-120s)...",
+    "js.taskWait": "Task {id} - {st} - waited {s}s",
+    "js.repoNew": "New version {v} ({sha})",
+    "js.repoUpd": "Update available ({v})",
+    "js.repoUptodate": "{v} · Up to date",
+    "js.updTitle": "Latest commit: <b>{msg}<\/b> - click upgrade on the right to pull it automatically (local config and account data are kept).",
+    "js.updToast": "New upstream release ({sha}): {msg}",
+    "js.updTop": "use the one-click upgrade at the top",
+    "js.hlTitle": "Highlights in this version ({v})",
+    "js.rcTitle": "Recent upstream commits:",
+    "js.noCommits": "No commits found",
+    "js.hasUpd": "New version available!",
+    "js.latest": "Already on the latest upstream version",
+    "js.signReq": "Sign-in required",
+    "js.upgConfirm": "Pull the latest code from the upstream GitHub repo and restart now?",
+    "js.updating": "Updating online...",
+    "js.updRestart": "Update done - restarting; the page will refresh when ready...",
+    "js.updFail": "Online update failed: {msg}",
+    "js.never": "Never",
+    "js.sAgo": "{s}s ago",
+    "js.mAgo": "{s}m ago",
+    "js.hAgo": "{s}h ago",
+    "js.dAgo": "{s}d ago",
+    "js.markOk": "✓ ",
+    "js.markBad": "✗ ",
+    "js.kindVideo": "Video",
+    "js.kindImage": "Image",
+    "js.elapsedS": "{s}s",
+    "js.defMsg": "fixes and features",
+    "js.latestSha": "latest",
+    "js.shaOld": "old",
+    "js.depVer": "Deployed version: {v} (commit {sha}) · ",
+    "js.latestUp": "Latest upstream on GitHub: {v} (commit {sha} {msg})",
+    "js.updDone": "Update done",
+    "js.main": "main",
+    "js.repoUptodate2": "Up to date {v} ({sha})"
+  },
+  zh: {
+    "meta.title": "muse2api · 账号池控制台",
+    "hdr.sub": "Muse 网页额度 · 反代 API",
+    "hdr.repo": "GitHub 仓库",
+    "hdr.linuxdo": "LINUX DO",
+    "hdr.repoTip": "打开 GitHub 仓库（https://github.com/its-benjamin/muse2api）· 基于 czg86389-hub/muse2api Fork",
+    "hdr.ldTip": "社区鸣谢与链接：LINUX DO（https://linux.do/）",
+    "hdr.verTip": "查看官方仓库最新版本状态与更新通知",
+    "hdr.vercheck": "版本检测",
+    "pill.svc": "<span class=\"led\"><\/span>服务 <b>—<\/b>",
+    "pill.acc": "<span class=\"led\"><\/span>账号 <b>—<\/b>",
+    "pill.br": "<span class=\"led\"><\/span>浏览器 <b>—<\/b>",
+    "pill.live": "<span class=\"led\"><\/span>自动刷新",
+    "key.lbl": "API Key",
+    "key.ph": "粘贴 m2a_ 开头的密钥",
+    "key.save": "保存",
+    "upd.title": "检测到 muse2api 官方仓库发布了新版本更新！",
+    "upd.ver": "新版本",
+    "upd.msg": "官方仓库已有新功能或性能优化提交，点击右侧按钮即可一键在线升级（自动保留本地 .env 密钥与账号池数据）。",
+    "upd.go": "⚡ 一键在线升级并重启",
+    "upd.view": "查看更新内容",
+    "upd.later": "暂不提醒",
+    "repo.title": "上游版本检查与在线升级",
+    "repo.badge.checking": "检测中…",
+    "repo.desc.loading": "正在实时对比本地版本与 GitHub 官方仓库最新版本…（在线升级自动保留 <code>.env<\/code> 密钥与 <code>data/<\/code> 账号池及媒体数据）",
+    "repo.pull": "⚡ 一键从 GitHub 在线更新并重启",
+    "repo.check": "🔍 立即重新检测更新",
+    "repo.history": "查看 GitHub 完整提交记录 ↗",
+    "auth.title": "需要先填入 API Key，页面才能读到数据",
+    "auth.body": "API Key 是这个服务自己的「访问密码」，用来防止别人白用你的 Muse 账号额度。\n        它<b style=\"color:var(--text)\">不是<\/b> Muse 的账号密码，是部署时自动生成的一串随机字符（以 <code>m2a_<\/code> 开头）。<br>\n        把它粘贴到右上角的输入框，点「保存」即可 —— 浏览器会记住，下次不用再输。",
+    "tab.pool": "账号池",
+    "tab.cookie": "获取 Cookie",
+    "tab.tasks": "任务记录",
+    "tab.media": "媒体库",
+    "tab.play": "接口测试",
+    "tab.docs": "接入文档",
+    "pool.relogin": "去重新登录",
+    "pool.conn": "接入信息 <span class=\"tag\">下游项目填这两个值<\/span>",
+    "pool.connHint": "把下面两项填进你的项目就能调用。BASE URL 就是接口地址前缀。",
+    "pool.copyBase": "复制",
+    "pool.baseUrl": "BASE URL（接口地址）",
+    "pool.apiKey": "API Key（访问密钥）",
+    "pool.show": "显示",
+    "pool.copyKey": "复制",
+    "pool.regen": "重新生成",
+    "pool.models": "模型名：<code>muse-spark<\/code>（对话/代码）、<code>muse-image<\/code>（生图）、<code>muse-video<\/code>（生视频）。\n        完整调用示例见「接入文档」页签。",
+    "stat.total": "<div class=\"k\">账号总数",
+    "stat.ok": "<div class=\"k\">可用",
+    "stat.bad": "<div class=\"k\">异常",
+    "stat.dis": "<div class=\"k\">已禁用",
+    "stat.media": "<div class=\"k\">媒体文件",
+    "pool.add": "添加账号 <span class=\"tag\">支持批量<\/span>",
+    "pool.addHint": "支持任意格式粘贴导入：Header 字符串（hatch_sess=...; hatch_gw=...）、Firefox 开发者工具 JSON（{\"Request Cookies\": {...}}）、或 cookies.txt（Netscape 格式）。关键 cookie：<code>hatch_sess</code>、<code>hatch_gw</code>、<code>hatch_vml</code>。批量导入时每行一个账号，格式 <code>标签 | cookie串</code>（标签可省略）。",
+    "pool.lblSingle": "账号标签（单条导入用）",
+    "pool.lblPh": "例如 muse-main",
+    "pool.ckLbl": "Cookie 字符串",
+    "ck.opt1": "方式一：浏览器扩展 <span class=\"tag\">推荐 · 零命令行 · 全平台<\/span>",
+    "ck.opt2": "方式二：手动复制 <span class=\"tag\">零安装 · 兜底<\/span>",
+    "ck.opt3": "方式三：粘贴导入 / 本机脚本 <span class=\"tag\">进阶<\/span>",
+    "ck.life": "Cookie 有效期说明 <span class=\"tag\">实测<\/span>",
+    "ck.dl": "下载并解压扩展",
+    "ck.load": "在浏览器里加载扩展",
+    "ck.login": "登录 muse.ai，然后点扩展图标导入",
+    "ck.dlBtn": "⬇ 下载 muse2api-extension.zip",
+    "ck.showFiles": "查看包含哪些文件",
+    "ck.exBase": "BASE URL（填进扩展）",
+    "ck.exKey": "API Key（填进扩展）",
+    "ck.mLbl": "账号标签",
+    "ck.mLblPh": "例如 acc-01",
+    "ck.mCkPh": "hatch_sess=...; hatch_gw=...; hatch_vml=...; hatch_native_auth_device=...",
+    "ck.import": "导入账号",
+    "ck.s1": "① 下载脚本",
+    "ck.s2": "② 运行（地址和密钥已帮你填好）",
+    "ck.pyDl": "⬇ get_muse_cookie.py",
+    "ck.viewSrc": "查看源码",
+    "ck.cmdGen": "<span id=\"cmdText\">正在生成命令…",
+    "ck.cpCmd": "<span class=\"cp\" onclick=\"copyCmd()\">复制",
+    "ck.thCk": "<th>cookie",
+    "ck.thHttp": "<th>httpOnly",
+    "ck.thLife": "<th>实测有效期",
+    "ck.thRole": "<th>作用",
+    "task.title": "生成任务记录",
+    "task.refresh": "刷新",
+    "task.clear": "清空全部",
+    "task.thId": "任务 ID",
+    "task.thType": "<th>类型",
+    "task.thPrompt": "<th>提示词",
+    "task.thElapsed": "耗时",
+    "task.thCreated": "<th>创建时间",
+    "task.thRes": "<th>结果 / 错误",
+    "task.loading": "<tr><td colspan=\"8\" class=\"empty\">加载中…<\/td><\/tr>",
+    "media.title": "媒体库",
+    "media.refresh": "<button class=\"ghost mini\" onclick=\"loadMedia()\">刷新",
+    "media.loading": "<div class=\"empty\">加载中…<\/div>",
+    "play.imgT": "在线生图测试 <span class=\"tag\">POST /v1/images/generations<\/span>",
+    "play.vidT": "在线生视频测试 <span class=\"tag\">POST /v1/videos<\/span>",
+    "play.prompt": "<label>提示词",
+    "play.aspect": "<label>比例",
+    "play.dur": "<label>时长(秒)",
+    "play.genImg": "<button class=\"primary-lg\" id=\"imgBtn\" onclick=\"runImage()\">开始生成图片",
+    "play.genVid": "<button class=\"primary-lg\" id=\"vidBtn\" onclick=\"runVideo()\">开始生成视频",
+    "doc.title": "接入说明",
+    "pool.ckPh": "hatch_sess=...; hatch_gw=...; hatch_vml=...&#10;或批量：&#10;acc-01 | hatch_sess=...; hatch_gw=...&#10;acc-02 | hatch_sess=...; hatch_gw=...",
+    "pool.import": "导入账号",
+    "pool.clear": "清空",
+    "pool.list": "账号列表",
+    "pool.kaBadge": "● 自动保活轮转中 (30m)",
+    "pool.kaAll": "⚡ 一键保活所有账号",
+    "pool.kaHint": "系统已开启<b>后台每 30 分钟静默保活<\/b>与<b>多账号公平轮转（LRU）<\/b>；「测试」会真实打开 muse.ai 验证会话。",
+    "th.label": "标签",
+    "th.accId": "<th>账号 ID",
+    "th.status": "<th>状态",
+    "th.expiry": "<th>有效期",
+    "th.quota": "<th>额度",
+    "th.enabled": "<th>启用",
+    "th.cookies": "<th>Cookie",
+    "th.lastUsed": "最后使用",
+    "th.note": "<th>备注",
+    "th.actions": "<th style=\"min-width:250px\">操作",
+    "pool.loading": "<tr><td colspan=\"10\" class=\"empty\">加载中…<\/td><\/tr>",
+    "ck.extHint": "用一个浏览器小扩展，把你<b>自己电脑上已经登录好的 muse.ai 登录态<\/b>同步过来。\n        不用装 Python、不用开终端、不用敲命令。<br>\n        <b>为什么必须用扩展<\/b>：muse.ai 的 4 条核心 cookie 都带\n        <code>httpOnly<\/code> 标记，网页脚本（F12 里敲 <code>document.cookie<\/code>、\n        小书签）读不到；只有浏览器扩展的 <code>cookies<\/code> 接口能拿到。",
+    "ck.step1hint": "解压到一个你不会删掉的目录，比如 <code>D:\\muse2api-extension<\/code>。",
+    "ck.step2hint": "以 Chrome 为例（Edge / Brave / 360 极速 等 Chromium 内核浏览器步骤类似）：",
+    "ck.s21": "地址栏输入 <code>chrome://extensions<\/code> 回车",
+    "ck.s22": "打开右上角 <b>开发者模式<\/b> 开关",
+    "ck.s23": "点左上角 <b>加载已解压的扩展程序<\/b>",
+    "ck.s24": "选中第 1 步解压出来的<b>文件夹<\/b>（不是里面的单个文件）",
+    "ck.step3hint": "先在你自己的浏览器里打开 <code>https://muse.ai/<\/code> 并登录\n            （登录到能看到聊天界面为止），再点浏览器工具栏上的扩展图标，\n            把下面两项填进去，点「读取并导入」。",
+    "ck.opt2hint": "不想装扩展的话，可以手动把 cookie 串抠出来。关键是用\n        <b>「网络」面板的请求标头<\/b>，而不是 Console —— 请求头里的\n        <code>cookie:<\/code> 一行<b>包含 httpOnly 的那几条<\/b>，Console 读不到。",
+    "ck.m21": "在你自己的浏览器里打开并登录 <code>https://muse.ai/<\/code>，停在聊天界面",
+    "ck.m22": "按 <kbd>F12<\/kbd> 打开开发者工具，切到 <b>网络 / Network<\/b> 面板",
+    "ck.m23": "按 <kbd>F5<\/kbd> 刷新页面，让请求列表出现内容",
+    "ck.m24": "点列表里<b>任意一条 muse.ai 的请求<\/b>（第一个就行）",
+    "ck.m25": "右侧找到 <b>标头 / Headers<\/b> → 往下滚到 <b>请求标头 / Request Headers<\/b>",
+    "ck.m26": "找到以 <code>cookie:<\/code> 开头的那一行，<b>把冒号后面的整串复制<\/b>\n            （从 <code>hatch_sess=<\/code> 开始，一直到行尾）",
+    "ck.m27": "粘到下面「方式三」的输入框里，点导入",
+    "ck.reqWarn": "注意：是<b>请求标头<\/b>里的 <code>cookie:<\/code>，不是「响应标头」。\n        响应标头里的 <code>set-cookie<\/code> 只有部分 cookie，会缺东西。",
+    "ck.opt3hint": "已经拿到 cookie 串的话，直接粘在这里导入（方式二手动复制的串也粘这里）。",
+    "ck.cliHint": "如果你习惯命令行、或者想用独立浏览器登录（不碰日常浏览器），也可以用这个脚本。\n        它只用 Python 标准库，<b>不需要 pip 安装任何东西<\/b>。",
+    "ck.step3": "③ 在弹出的浏览器窗口里登录 muse.ai → 脚本自动抓取并上传 → 自动关窗。",
+    "ck.lifeHint": "实测 muse.ai 各条 cookie 的有效期（不同账号可能略有差异）：",
+    "ck.yes": "<td>是",
+    "ck.lifeBody": "<b>账号实际能活多久？<\/b>取决于最早过期的那条核心 cookie，也就是\n        <code>hatch_vml<\/code> —— 大约 <b>2 天<\/b>。<br>\n        <b style=\"color:var(--warn)\">注意：这个 2 天不会因为「用得多」而延长。<\/b>\n        本服务每次生成完成后确实会把 muse.ai 新下发的 cookie 读回来写进账号池\n        （所以你会看到「有效期」列的数值有更新），但核心 cookie 的到期时间\n        <b>不会被推后<\/b>（已做生成前后对照实验确认）。<br>\n        <b>所以：大约每 2 天要重新导入一次。<\/b>好在很快 —— 点一下扩展图标就行。<br>\n        <b>建议一次多导几个账号<\/b>：账号池按「最久未用」轮转，多账号既更稳，\n        也能把重导摊开（每天导一个，而不是所有账号同时失效）。<br>\n        <b>什么时候要重导？<\/b>账号列表里「有效期」变成\n        <span class=\"badge bad\">已过期<\/span>、状态变成\n        <span class=\"badge bad\">异常<\/span>，或出现「缺核心」标记时。",
+    "task.hint": "生视频是异步任务，状态会从 queued → processing → succeeded / failed。",
+    "media.hint": "所有已生成并落盘的图片 / 视频，可直接下载或把链接给下游项目使用。",
+    "play.imgHint": "真实调用 muse.ai 生成，图片约 10–30 秒返回。",
+    "play.vidHint": "异步任务，一般 60–120 秒完成，页面会自动轮询进度。",
+    "doc.intro": "接口与 OpenAI 风格对齐，下游项目只需改 <code>base_url<\/code> 和 <code>api_key<\/code>。",
+    "doc.h1": "1. 可用模型",
+    "doc.h2": "2. 对话 / 写代码",
+    "doc.h3": "3. 生图（curl）",
+    "doc.h4": "4. 生视频（curl，异步）",
+    "doc.h5": "5. Python（openai SDK 兼容）",
+    "doc.h6": "6. 管理接口",
+    "doc.h7": "7. 鉴权",
+    "doc.h8": "8. 接入各类客户端 / 智能体",
+    "doc.thModel": "<th>模型 ID",
+    "doc.thPurpose": "<th>用途",
+    "doc.thEp": "<th>接口",
+    "doc.thMethod": "<th>方法",
+    "doc.thPath": "<th>路径",
+    "doc.thDesc": "<th>说明",
+    "doc.thSet": "<th>配置项",
+    "doc.thVal": "<th>填什么",
+    "doc.thClient": "<th>客户端类型",
+    "doc.thCap": "<th>依赖能力",
+    "doc.mSpark": "<td>文本 / 代码对话（支持流式）",
+    "doc.mImg": "<td>文生图 / 图像编辑",
+    "doc.mVid": "<td>文生视频 / 图生视频",
+    "doc.mNote": "这三个就是 Muse 系列的真实能力：<b>Muse Spark<\/b>（语言 / 代码）、<b>Muse Image<\/b>（生图）、\n        <b>Muse Video<\/b>（生视频）。muse.ai 网页是自动路由的 agent、界面没有模型选择器，\n        所以 <code>model<\/code> 字段只用于兼容下游 —— 传 <code>gpt-4o<\/code>、\n        <code>claude-sonnet-4<\/code>、<code>dall-e-3<\/code> 等常见名字会自动映射到对应能力。",
+    "doc.auth": "除 <code>/healthz<\/code>、<code>/readyz<\/code>、<code>/v1/media/*<\/code> 外，其余接口均需\n        <code>Authorization: Bearer &lt;API Key&gt;<\/code>。API Key 在服务器\n        <code>/opt/muse2api/.env<\/code> 的 <code>MUSE2API_KEY<\/code> 中配置。",
+    "doc.cliHint": "凡是支持「自定义 OpenAI 兼容端点」的客户端，都只填三个值就能用：",
+    "doc.sBase": "<td>Base URL / API 地址",
+    "doc.sKey": "<td>API Key",
+    "doc.sModel": "<td>模型名",
+    "doc.anyModel": "<b>模型名随便填也能用<\/b>：常见名字（<code>gpt-4o<\/code>、<code>gpt-5<\/code>、\n        <code>claude-sonnet-4<\/code>、<code>deepseek-chat<\/code>、<code>gemini-2.5-pro<\/code> 等）\n        会自动映射到对应能力；完全没见过的名字会原样透传，muse.ai 那边本来就是自动路由，\n        不影响结果。",
+    "doc.hCompat": "按客户端类型看能不能用",
+    "doc.toolLim": "<b>关于「工具调用」这条限制（重要，已实测）：<\/b><br>\n        muse.ai 的网页助手对「输出伪工具调用 JSON」有明确的对齐拒绝策略 —— 实测原话是\n        「我不会按这种 JSON 格式输出'伪工具调用'——我没有 get_weather 这个工具」。\n        用三种不同措辞、不同位置的提示词协议去适配，全部失败。<br>\n        所以：依赖 <code>tool_calls<\/code> 的<b>自主 Agent 模式<\/b>（自动读写文件、执行命令那一类）接不了；\n        但所有<b>问答式<\/b>用法 —— 对话、写代码、解释、翻译、总结、生图、生视频 —— <b>全部完全可用<\/b>。<br>\n        客户端若强行带上 <code>tools<\/code> 字段，接口不会报错，会忽略工具声明、按普通对话正常回答。",
+    "doc.aStatus": "<td>服务总览 + 账号池 + 最近任务",
+    "doc.aList": "<td>账号列表",
+    "doc.aAdd": "<td>添加账号（单条 / batch 批量文本）",
+    "doc.aPatch": "<td>改标签 / 启用禁用",
+    "doc.aDel": "<td>删除账号",
+    "doc.aTest": "<td>真实校验会话有效性（顺带刷新额度）",
+    "doc.aQuota": "<td>实时读取该账号剩余额度",
+    "doc.aCookies": "<td>更新该账号 cookie",
+    "doc.aTasks": "<td>任务记录",
+    "doc.aMedia": "<td>媒体库列表",
+    "doc.cChat": "<td>对话 / 聊天类（桌面端、Web UI、浏览器插件）",
+    "doc.cStream": "<td>流式输出（打字机效果）",
+    "doc.cCode": "<td>代码补全 / 内联补全插件",
+    "doc.cTools": "<td>翻译 / 总结 / 解释类工具",
+    "doc.cImg": "<td>画图类客户端",
+    "doc.cVid": "<td>视频生成客户端",
+    "doc.cAgent": "<td>需要「工具调用」的自主 Agent 模式",
+    "doc.supported": "<span class=\"badge ok\">✅ 可用",
+    "doc.unsupported": "<span class=\"badge warn\">⚠️ 不可用",
+    "ft.os": "开源仓库：<a href=\"https://github.com/its-benjamin/muse2api\" target=\"_blank\" style=\"color:var(--acc);text-decoration:none\">GitHub · its-benjamin/muse2api<\/a>（<a href=\"https://github.com/czg86389-hub/muse2api\" target=\"_blank\" style=\"color:var(--muted);text-decoration:none\">上游项目<\/a>）",
+    "ft.cm": "社区认可与友情链接：<a href=\"https://linux.do/\" target=\"_blank\" style=\"color:var(--acc);text-decoration:none;font-weight:600\">LINUX DO 社区 (https://linux.do/)<\/a>",
+    "doc.cp": "<span class=\"cp\" onclick=\"cp(this)\">复制",
+    "ck.cpBase": "复制",
+    "ck.cpKey": "复制",
+    "play.imgEx": "一只戴宇航头盔的柴犬，赛博朋克风格，霓虹灯背景",
+    "play.vidEx": "一只橙色小猫在草地上慢慢走动，阳光明媚",
+    "doc.baseLbl": "BASE URL：",
+    "ck.rSessT": "<b style=\"color:var(--ok)\">约 30 天",
+    "ck.rSessR": "<td>主会话，决定能不能登录",
+    "ck.rGwT": "<b style=\"color:var(--ok)\">约 1 年",
+    "ck.rGwR": "<td>网关令牌",
+    "ck.rVmlT": "<b style=\"color:var(--bad)\">约 2 天",
+    "ck.rVmlR": "<td>短效校验令牌，<b>决定账号寿命<\/b>",
+    "ck.rDevT": "<b style=\"color:var(--ok)\">约 30 天",
+    "ck.rDevR": "<td>设备标识（匿名访客也有，不是登录凭证）",
+    "js.signedIn": "✓ 已登录",
+    "js.keyRequired": "需要 API Key",
+    "js.keyCleared": "API Key 已清空",
+    "js.keySaved": "API Key 已保存在本浏览器，下次自动填写",
+    "js.keyBad": "API Key 缺失或不正确",
+    "js.proxy502": "反向代理超时（Nginx 502 Bad Gateway——通常是默认60 秒 proxy_read_timeout；请将代理超时调大到 600 秒）",
+    "js.copied": "已复制",
+    "js.clipboard": "已复制到剪贴板",
+    "js.copyNone": "没有可复制的内容",
+    "js.copyFail": "复制失败——请手动选中复制",
+    "js.cmdNeedKey": "（在右上角输入 API Key 后，完整命令将显示在此）",
+    "js.show": "显示",
+    "js.hide": "隐藏",
+    "js.loading": "加载中…",
+    "js.extFiles": "包含 {n} 个文件：",
+    "js.extEmpty": "（扩展目录为空——请检查部署）",
+    "js.loadFail": "加载失败：{msg}",
+    "js.rotConfirm": "重新生成 API Key？\n\n旧密钥会立即失效——已接入的下游项目必须更新，否则会收到 401。",
+    "js.rotDone": "新密钥已生成并生效，本页已更新",
+    "js.rotFail": "重新生成失败：{msg}",
+    "js.unchecked": "未检查",
+    "js.qTip": "尚未检查。请在“操作”列下点击 Quota 实时查询",
+    "js.qPlan": "套餐：{p}",
+    "js.qReset": "周重置：{v}",
+    "js.qUsed": "周用量：已用 {p}%",
+    "js.qExtra": "额外令牌：剩余 {v}（已用 {p}%）",
+    "js.qChecked": "检查时间：{v}",
+    "js.qUsedShort": "已用 {p}%",
+    "js.checking": "检查中…",
+    "js.quotaBtn": "配额",
+    "js.quotaToast": "配额：{plan}——周用量 {p}%{extra}",
+    "js.quotaExtra": "，额外剩余 {v}",
+    "js.quotaNone": "在设置页中未找到配额数据（页面布局可能已变）",
+    "js.quotaFail": "配额查询失败：{msg}",
+    "js.expUnknown": "未知",
+    "js.expUnknownTip": "无过期时间记录",
+    "js.expEst": "（根据 hatch_vml 约 2 天有效期估算；未找到精确过期时间）",
+    "js.expExact": "（实测 hatch_vml 过期时间）",
+    "js.expired": "已过期",
+    "js.expiredAt": "已过期 {v}",
+    "js.expiresAt": "过期时间：{v}",
+    "js.daysLeft": "剩余 {v} 天",
+    "js.hoursLeft": "剩余 {v} 小时",
+    "js.svcName": "服务",
+    "js.accName": "账号",
+    "js.brName": "浏览器",
+    "js.svcOk": "正常",
+    "js.brRun": "运行中",
+    "js.brIdle": "空闲",
+    "js.brBlocked": "被阻止：正以管理员身份运行——请以非提权方式重启",
+    "js.needSign": "需要登录",
+    "js.accEmpty": "暂无账号。请在“获取 Cookie”标签页导入一个。",
+    "js.needKey": "🔑 请先在右上角输入 API Key 并点击保存",
+    "js.loadFail2": "加载失败：{msg}",
+    "js.moreN": "，还有 {n} 个",
+    "js.expiredN": "⚠️ <b>{dead} 个账号已过期<\/b>{rest}。过期账号无法生成——请重新登录（约 30 秒）。",
+    "js.expiredRest": "，另有 {n} 个即将过期（{names}）",
+    "js.expiredOnly": "（{names}）",
+    "js.soonWarn": "⏳ <b>{names}<\/b> 将在 12 小时内过期。muse.ai 会话约 2 天有效且使用不会延长，请立即重新登录，避免生成失败。",
+    "js.bDisabled": "已禁用",
+    "js.bHealthy": "● 健康",
+    "js.bUnhealthy": "● 异常",
+    "js.bUnchecked": "○ 未检查",
+    "js.bMissing": "缺少核心",
+    "js.bMissingTip": "缺少核心 Cookie——无法生成",
+    "js.bOn": "开",
+    "js.bOff": "关",
+    "js.actTest": "测试",
+    "js.actKa": "保活",
+    "js.actKaTip": "静默刷新会话令牌与过期时间",
+    "js.actEnable": "启用",
+    "js.actDisable": "禁用",
+    "js.actRename": "重命名",
+    "js.actUpdCk": "更新 Cookie",
+    "js.actDel": "删除",
+    "js.sepNames": "、",
+    "js.ckFirst": "请先粘贴 Cookie 字符串",
+    "js.importedN": "已导入 {n} 个账号",
+    "js.importFail": "导入失败：{msg}",
+    "js.testing": "正在真实验证 muse.ai 会话…",
+    "js.testFail": "测试失败：{msg}",
+    "js.kaOne": "正在静默续期此账号会话…",
+    "js.kaOk": "✓ 保活成功——已保存新过期时间",
+    "js.kaOneFail": "✗ 保活失败：{msg}",
+    "js.kaFail": "保活失败：{msg}",
+    "js.kaAllBtn": "⚡ 保活全部账号",
+    "js.kaAllBusy": "保活中…",
+    "js.kaAllToast": "正在唤醒无头浏览器静默续期…",
+    "js.kaBusy": "保活正在后台运行——请稍后查看",
+    "js.kaDone": "✓ 已保活 {r} 个账号，跳过 {s} 个",
+    "js.kaAllFail": "保活运行失败：{msg}",
+    "js.actEnabled": "已启用",
+    "js.actDisabled": "已禁用",
+    "js.actFail": "操作失败：{msg}",
+    "js.renPrompt": "新账号标签：",
+    "js.renDone": "标签已更新",
+    "js.renFail": "重命名失败：{msg}",
+    "js.ckPrompt": "请粘贴此账号的最新 Cookie 字符串：",
+    "js.ckDone": "Cookie 已更新（{n}）",
+    "js.ckFail": "更新失败：{msg}",
+    "js.delConfirm": "删除账号“{label}”？此操作不可撤销。",
+    "js.deleted": "已删除",
+    "js.delFail": "删除失败：{msg}",
+    "js.noTasks": "暂无任务",
+    "js.viewRes": "查看结果",
+    "js.taskDel": "删除",
+    "js.clearConfirm": "清空全部任务记录？（生成的媒体文件会保留。）",
+    "js.clearedN": "已清空 {n} 条记录",
+    "js.clearFail": "清空失败：{msg}",
+    "js.noMedia": "尚未生成任何媒体",
+    "js.open": "打开",
+    "js.dl": "下载",
+    "js.enterPrompt": "请先输入提示词",
+    "js.generating": "生成中...",
+    "js.imgSubmit": "正在提交图片任务并轮询状态...",
+    "js.imgTimeout": "已等待超过 15 分钟-请到任务页查看结果，不要重复提交",
+    "js.imgFail": "图片生成失败",
+    "js.pollFail": "状态轮询失败-请到任务页查看，不要重复提交",
+    "js.done": "完成",
+    "js.failed": "失败",
+    "js.genImg": "生成图片",
+    "js.genVid": "生成视频",
+    "js.vidCreate": "正在创建视频任务...",
+    "js.vidFailCreate": "创建任务失败",
+    "js.vidWait": "任务{st}-已等待 {s} 秒（视频通常需要 60-120 秒）...",
+    "js.taskWait": "任务 {id}- {st}-已等待 {s} 秒",
+    "js.repoNew": "新版本 {v}（{sha}）",
+    "js.repoUpd": "有可用更新（{v}）",
+    "js.repoUptodate": "{v} · 已是最新",
+    "js.updTitle": "最新提交：<b>{msg}<\/b>-点击右侧升级按钮自动拉取（本地配置与账号数据不受影响）。",
+    "js.updToast": "上游有新版本（{sha}）：{msg}",
+    "js.updTop": "请使用顶部的一键升级",
+    "js.hlTitle": "本版本亮点（{v}）",
+    "js.rcTitle": "上游最近提交：",
+    "js.noCommits": "未找到提交记录",
+    "js.hasUpd": "有新版本可用！",
+    "js.latest": "已是最新上游版本",
+    "js.signReq": "需要登录",
+    "js.upgConfirm": "从上游 GitHub 仓库拉取最新代码并立即重启？",
+    "js.updating": "在线更新中...",
+    "js.updRestart": "更新完成-正在重启，页面就绪后会自动刷新...",
+    "js.updFail": "在线更新失败：{msg}",
+    "js.never": "从未",
+    "js.sAgo": "{s} 秒前",
+    "js.mAgo": "{s} 分钟前",
+    "js.hAgo": "{s} 小时前",
+    "js.dAgo": "{s} 天前",
+    "js.markOk": "✓ ",
+    "js.markBad": "✗ ",
+    "js.kindVideo": "视频",
+    "js.kindImage": "图片",
+    "js.elapsedS": "{s} 秒",
+    "js.defMsg": "功能修复与改进",
+    "js.latestSha": "最新",
+    "js.shaOld": "旧版",
+    "js.depVer": "已部署版本：{v}（提交 {sha}）· ",
+    "js.latestUp": "GitHub 上游最新：{v}（提交 {sha} {msg}）",
+    "js.updDone": "更新完成",
+    "js.main": "main",
+    "js.repoUptodate2": "已是最新 {v}（{sha}）"
+  }
+};
+const LANG_STORE = 'm2a_lang';
+function detectLang(){
+  const saved = localStorage.getItem(LANG_STORE);
+  if (saved === 'en' || saved === 'zh') return saved;
+  return (navigator.language || '').toLowerCase().indexOf('zh') === 0 ? 'zh' : 'en';
+}
+let LANG = detectLang();
+function t(key, params){
+  const v = (I18N[LANG] && I18N[LANG][key] != null) ? I18N[LANG][key] : ((I18N.en && I18N.en[key] != null) ? I18N.en[key] : key);
+  if (!params) return v;
+  return String(v).replace(/\{(\w+)\}/g, function(m, p){
+    return Object.prototype.hasOwnProperty.call(params, p) ? String(params[p]) : m;
+  });
+}
+function applyI18n(root){
+  const scope = root || document;
+  scope.querySelectorAll('[data-i18n]').forEach(function(el){
+    el.innerHTML = t(el.getAttribute('data-i18n'));
+  });
+  scope.querySelectorAll('[data-i18n-ph]').forEach(function(el){
+    el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph')));
+  });
+  scope.querySelectorAll('[data-i18n-title]').forEach(function(el){
+    el.setAttribute('title', t(el.getAttribute('data-i18n-title')));
+  });
+  scope.querySelectorAll('[data-i18n-val]').forEach(function(el){
+    el.value = t(el.getAttribute('data-i18n-val'));
+  });
+  const btn = $('langBtn');
+  if (btn) btn.textContent = (LANG === 'en') ? '\u4e2d\u6587' : 'EN';
+  document.documentElement.setAttribute('lang', LANG === 'en' ? 'en' : 'zh-CN');
+  document.title = t('meta.title');
+}
+function toggleLang(){
+  LANG = (LANG === 'en') ? 'zh' : 'en';
+  localStorage.setItem(LANG_STORE, LANG);
+  applyI18n();
+  renderDynamic();
+}
+function renderDynamic(){
+  if (authOK !== null) { const _o = authOK; authOK = null; setAuth(_o); }
+  renderKey();
+  if (realKey) { $('cmdText').textContent = buildCmd($('inBase').value); }
+  else { $('cmdText').textContent = t('js.cmdNeedKey'); }
+  loadStatus(); loadPool();
+  if ($('tab-tasks').classList.contains('active')) loadTasks();
+  if ($('tab-media').classList.contains('active')) loadMedia();
+  loadRepoStatus(false);
+}
+applyI18n();
 const KEY_STORE = 'muse2api_key';
 let KEY = localStorage.getItem(KEY_STORE) || new URLSearchParams(location.search).get('key') || '';
 $('key').value = KEY;
-$('dBase').textContent = location.origin + '/v1';
+if ($('dBase')) $('dBase').textContent = location.origin + '/v1';
 
-/* 登录状态：控制提示条和 Key 输入框高亮 */
+/* Auth state: controls the banner and Key input highlight */
 let authOK = null;
 function setAuth(ok){
   if (authOK === ok) return;
@@ -755,15 +1557,15 @@ function setAuth(ok){
   $('authBanner').classList.toggle('show', !ok);
   $('keyBox').classList.toggle('ok', ok);
   $('keyBox').classList.toggle('miss', !ok);
-  $('keyLbl').textContent = ok ? '✓ 已登录' : 'API Key 必填';
+  $('keyLbl').textContent = ok ? t('js.signedIn') : t('js.keyRequired');
 }
 
 function saveKey(){
   KEY = $('key').value.trim();
   localStorage.setItem(KEY_STORE, KEY);
-  if (!KEY){ setAuth(false); toast('已清除 API Key', 'warn'); return; }
-  toast('API Key 已保存到本机浏览器，下次打开自动带上', 'ok');
-  authOK = null;                 // 强制重新判定
+  if (!KEY){ setAuth(false); toast(t('js.keyCleared'), 'warn'); return; }
+  toast(t('js.keySaved'), 'ok');
+  authOK = null;                 // force re-check
   refreshAll();
 }
 
@@ -785,7 +1587,7 @@ async function api(path, opts){
   let data; try { data = JSON.parse(txt); } catch(e){ data = null; }
   if (r.status === 401){
     setAuth(false);
-    throw new Error('API Key 未填写或填写错误');
+    throw new Error(t('js.keyBad'));
   }
   setAuth(true);
   if (!r.ok) {
@@ -797,7 +1599,7 @@ async function api(path, opts){
     }
     if (!msg && txt) {
       if (txt.includes('502 Bad Gateway') || txt.includes('nginx')) {
-        msg = '反向代理超时 (Nginx 502 Bad Gateway，通常是 Nginx proxy_read_timeout 默认 60s 太短，请将反代超时调至 600s)';
+        msg = t('js.proxy502');
       } else {
         msg = txt.slice(0, 150);
       }
@@ -824,19 +1626,19 @@ function fmtTime(ts){
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 function ago(ts){
-  if (!ts) return '从未';
+  if (!ts) return t('js.never');
   const s = Math.max(0, Math.floor(Date.now()/1000) - ts);
-  if (s < 60) return s + ' 秒前';
-  if (s < 3600) return Math.floor(s/60) + ' 分钟前';
-  if (s < 86400) return Math.floor(s/3600) + ' 小时前';
-  return Math.floor(s/86400) + ' 天前';
+  if (s < 60) return t('js.sAgo', {s: s});
+  if (s < 3600) return t('js.mAgo', {s: Math.floor(s/60)});
+  if (s < 86400) return t('js.hAgo', {s: Math.floor(s/3600)});
+  return t('js.dAgo', {s: Math.floor(s/86400)});
 }
 function cp(el){
-  const t = el.parentElement.innerText.replace(/^复制\n?/, '');
-  navigator.clipboard.writeText(t).then(() => toast('已复制', 'ok'));
+  const t = el.parentElement.innerText.replace(/^(Copy|复制)\n?/, '');
+  navigator.clipboard.writeText(t).then(() => toast(t('js.copied'), 'ok'));
 }
 
-/* ================= 页签 ================= */
+/* ================= Tabs ================= */
 function goTab(name){
   const b = document.querySelector(`nav.tabs button[data-t="${name}"]`);
   if (b) b.click();
@@ -853,7 +1655,7 @@ document.querySelectorAll('nav.tabs button').forEach(b => {
   };
 });
 
-/* ================= 接入信息 / API Key ================= */
+/* ================= Connection info / API Key ================= */
 let realKey = '';
 let keyShown = false;
 
@@ -868,7 +1670,7 @@ async function loadApikey(){
   }catch(e){
     $('inBase').value = location.origin + '/v1';
     fillExtFields(location.origin);
-    $('cmdText').textContent = '（先在右上角填入 API Key，这里会生成完整命令）';
+    $('cmdText').textContent = t('js.cmdNeedKey');
   }
 }
 
@@ -878,26 +1680,26 @@ function maskKey(k){
 }
 function renderKey(){
   $('inKey').value = keyShown ? realKey : maskKey(realKey);
-  $('keyEye').textContent = keyShown ? '隐藏' : '显示';
+  $('keyEye').textContent = keyShown ? t('js.hide') : t('js.show');
 }
 function toggleKey(){ keyShown = !keyShown; renderKey(); }
 
 function buildCmd(baseUrl){
   const root = (baseUrl || location.origin).replace(/\/v1\/?$/, '').replace(/\/+$/, '');
-  return `python get_muse_cookie.py --base ${root} --key ${realKey || '你的API_KEY'} --label muse-01`;
+  return `python get_muse_cookie.py --base ${root} --key ${realKey || 'YOUR_API_KEY'} --label muse-01`;
 }
 
 async function copyText(v){
-  if (!v) return toast('没有可复制的内容', 'warn');
+  if (!v) return toast(t('js.copyNone'), 'warn');
   try{
     await navigator.clipboard.writeText(v);
-    toast('已复制到剪贴板', 'ok');
+    toast(t('js.clipboard'), 'ok');
   }catch(e){
-    const ta = document.createElement('textarea');   // 非 https 时的兜底
+    const ta = document.createElement('textarea');   // fallback for non-https
     ta.value = v; ta.style.position = 'fixed'; ta.style.opacity = '0';
     document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); toast('已复制到剪贴板', 'ok'); }
-    catch(_){ toast('复制失败，请手动选中复制', 'warn'); }
+    try { document.execCommand('copy'); toast(t('js.clipboard'), 'ok'); }
+    catch(_){ toast(t('js.copyFail'), 'warn'); }
     ta.remove();
   }
 }
@@ -906,7 +1708,7 @@ async function copyKey(){ await copyText(realKey); }
 async function copyCmd(){ await copyText($('cmdText').textContent); }
 async function copyExKey(){ await copyText($('exKey').value); }
 
-/* 扩展方案：把 BASE URL / API Key 填进页面上的复制框 */
+/* Extension flow: fill BASE URL / API Key into the copy boxes */
 function fillExtFields(baseUrl){
   const root = (baseUrl || location.origin)
     .replace(/\/v1\/?$/i, '').replace(/\/+$/, '');
@@ -916,20 +1718,20 @@ function fillExtFields(baseUrl){
 async function loadExtFiles(){
   const el = $('extFiles');
   if (!el) return;
-  el.textContent = '读取中…';
+  el.textContent = t('js.loading');
   try{
     const d = await api('/admin/extension/files');
     const files = d.files || [];
     el.innerHTML = files.length
-      ? `包含 ${files.length} 个文件：` + files.map(f => `<code>${esc(f)}</code>`).join('、')
-      : '（扩展目录为空，请检查部署）';
+      ? t('js.extFiles', {n: files.length}) + files.map(f => `<code>${esc(f)}</code>`).join('、')
+      : t('js.extEmpty');
   }catch(e){
-    el.textContent = '读取失败：' + e.message;
+    el.textContent = t('js.loadFail', {msg: e.message});
   }
 }
 
 async function rotateKey(){
-  if (!confirm('重新生成 API Key？\n\n旧 Key 会立即失效，已经接入的下游项目必须同步更新，否则会报 401。')) return;
+  if (!confirm(t('js.rotConfirm'))) return;
   try{
     const d = await api('/admin/apikey/rotate', {method:'POST'});
     realKey = d.api_key;
@@ -938,65 +1740,65 @@ async function rotateKey(){
     $('key').value = KEY;
     keyShown = true; renderKey();
     $('cmdText').textContent = buildCmd($('inBase').value);
-    toast('已生成新 Key 并立即生效，本页已自动更新', 'ok');
-  }catch(e){ toast('生成失败：' + e.message, 'bad'); }
+    toast(t('js.rotDone'), 'ok');
+  }catch(e){ toast(t('js.rotFail', {msg: e.message}), 'bad'); }
 }
 
-/* ================= 额度显示 ================= */
+/* ================= Quota display ================= */
 function quotaBadge(a){
   const q = a.quota;
   if (!q || !q.found){
-    return '<span class="badge mute" title="还没查过。点「操作」里的「额度」实时查询">未查</span>';
+    return '<span class="badge mute" title="' + esc(t('js.qTip')) + '">' + esc(t('js.unchecked')) + '</span>';
   }
   const pct = (q.weekly_used_pct != null) ? q.weekly_used_pct : null;
   const cls = pct == null ? 'info' : pct < 50 ? 'ok' : pct < 80 ? 'warn' : 'bad';
   const plan = (q.plan || '').replace(/\s*plan\s*$/i, '') || '—';
-  let title = `计划：${q.plan || '?'}`;
-  if (q.weekly_reset) title += `\n周限额重置：${q.weekly_reset}`;
-  if (pct != null) title += `\n周用量：已用 ${pct}%`;
-  if (q.extra_left) title += `\n额外代币：剩 ${q.extra_left}（已用 ${q.extra_used_pct ?? '?'}%）`;
-  if (q.checked_at) title += `\n查询时间：${fmtTime(q.checked_at)}`;
-  const main = pct != null ? `${plan} · 已用 ${pct}%` : plan;
+  let title = t('js.qPlan', {p: q.plan || '?'});
+  if (q.weekly_reset) title += '\n' + t('js.qReset', {v: q.weekly_reset});
+  if (pct != null) title += '\n' + t('js.qUsed', {p: pct});
+  if (q.extra_left) title += '\n' + t('js.qExtra', {v: q.extra_left, p: (q.extra_used_pct ?? '?')});
+  if (q.checked_at) title += '\n' + t('js.qChecked', {v: fmtTime(q.checked_at)});
+  const main = pct != null ? (plan + ' · ' + t('js.qUsedShort', {p: pct})) : plan;
   const sub = q.extra_left ? `<div class="mono" style="font-size:11px;color:var(--muted);margin-top:2px">+${esc(q.extra_left)}</div>` : '';
   return `<span class="badge ${cls}" title="${esc(title)}">${esc(main)}</span>${sub}`;
 }
 
 async function queryQuota(aid, btn){
-  if (btn){ btn.disabled = true; btn.textContent = '查询中…'; }
+  if (btn){ btn.disabled = true; btn.textContent = t('js.checking'); }
   try{
     const q = await api(`/admin/accounts/${aid}/quota`, {method:'POST'});
     if (q.found){
-      const extra = q.extra_left ? `，额外剩 ${q.extra_left}` : '';
-      toast(`额度：${q.plan || '?'}，周用量已用 ${q.weekly_used_pct ?? '?'}%${extra}`, 'ok');
+      const extra = q.extra_left ? t('js.quotaExtra', {v: q.extra_left}) : '';
+      toast(t('js.quotaToast', {plan: (q.plan || '?'), p: (q.weekly_used_pct ?? '?'), extra: extra}), 'ok');
     }else{
-      toast('设置面板里没有读到额度数据（可能是页面结构变了）', 'warn');
+      toast(t('js.quotaNone'), 'warn');
     }
     loadPool();
   }catch(e){
-    toast('额度查询失败：' + e.message, 'bad');
-    if (btn){ btn.disabled = false; btn.textContent = '额度'; }
+    toast(t('js.quotaFail', {msg: e.message}), 'bad');
+    if (btn){ btn.disabled = false; btn.textContent = t('js.quotaBtn'); }
   }
 }
 
-/* ================= 有效期显示 ================= */
+/* ================= Expiry display ================= */
 function expiryBadge(a){
   const ts = a && a.expires_at;
-  if (!ts) return '<span class="badge mute" title="未记录有效期">未知</span>';
+  if (!ts) return '<span class="badge mute" title="' + esc(t('js.expUnknownTip')) + '">' + esc(t('js.expUnknown')) + '</span>';
   const est = a.expires_estimated
-    ? '（按 hatch_vml 约 2 天寿命推算，未取到精确 expires）'
-    : '（hatch_vml 实测到期时间）';
+    ? t('js.expEst')
+    : t('js.expExact');
   const left = ts - Math.floor(Date.now() / 1000);
-  if (left <= 0) return `<span class="badge bad" title="已于 ${fmtTime(ts)} 过期${est}">已过期</span>`;
+  if (left <= 0) return '<span class="badge bad" title="' + esc(t('js.expiredAt', {v: fmtTime(ts)}) + est) + '">' + esc(t('js.expired')) + '</span>';
   const days = left / 86400;
-  // 保留一位小数，别把「还剩 1.9 天」显示成「剩 1 天」（会让人以为快没了）
+  // keep one decimal so "1.9 days left" never shows as "1 day left" (looks almost dead)
   const txt = days >= 1
-    ? `剩 ${days >= 10 ? Math.round(days) : days.toFixed(1)} 天`
-    : `剩 ${Math.max(1, Math.floor(left / 3600))} 小时`;
+    ? t('js.daysLeft', {v: (days >= 10 ? Math.round(days) : days.toFixed(1))})
+    : t('js.hoursLeft', {v: Math.max(1, Math.floor(left / 3600))});
   const cls = days < 1 ? 'bad' : days < 3 ? 'warn' : 'ok';
-  return `<span class="badge ${cls}" title="到期时间：${fmtTime(ts)}${est}">${txt}</span>`;
+  return '<span class="badge ' + cls + '" title="' + esc(t('js.expiresAt', {v: fmtTime(ts)}) + est) + '">' + esc(txt) + '</span>';
 }
 
-/* ================= 账号池 ================= */
+/* ================= Account pool ================= */
 let accounts = [];
 
 async function loadPool(){
@@ -1010,64 +1812,68 @@ async function loadPool(){
     $('sDis').textContent   = st.disabled ?? 0;
     $('poolCount').textContent = accounts.length;
     $('pAcc').className = 'pill ' + (accounts.length ? 'on' : 'off');
-    $('pAcc').innerHTML = `<span class="led"></span>账号 <b>${accounts.length}</b>`;
+    $('pAcc').innerHTML = '<span class="led"></span>' + esc(t('js.accName')) + ' <b>' + accounts.length + '</b>';
 
-    // 快过期 / 已过期提醒。hatch_vml 只有约 2 天寿命，且不会因为使用而延长，
-    // 所以这里是刚需提醒，不是锦上添花。
+    // Expiring/expired reminder. hatch_vml lives ~2 days and usage does not extend it,
+    // so this warning is essential, not a nice-to-have.
     const now = Math.floor(Date.now() / 1000);
     const soon = accounts.filter(a => a.enabled && a.expires_at &&
                                       a.expires_at - now < 12 * 3600);
     const bar = $('expWarn');
     if (soon.length){
       const dead = soon.filter(a => a.expires_at <= now).length;
-      const names = soon.slice(0, 4).map(a => esc(a.label)).join('、') +
-                    (soon.length > 4 ? ` 等 ${soon.length} 个` : '');
+      const names = soon.slice(0, 4).map(a => esc(a.label)).join(t('js.sepNames'));
+                    (soon.length > 4 ? t('js.moreN', {n: soon.length - 4}) : '');
       $('expWarnText').innerHTML = dead
-        ? `⚠️ <b>${dead} 个账号已过期</b>，${soon.length - dead ? `另有 ${soon.length - dead} 个即将过期（${names}）` : names}。` +
-          `过期的账号无法生成，请重新登录一次（约 30 秒）。`
-        : `⏳ <b>${names}</b> 的有效期不足 12 小时。muse.ai 的会话约 2 天到期且不会因使用而延长，` +
-          `建议现在重新登录一次，避免生成时突然失败。`;
+        ? t('js.expiredN', {dead: dead, rest: (soon.length - dead ? t('js.expiredRest', {n: soon.length - dead, names: names}) : t('js.expiredOnly', {names: names}))})
+        : t('js.soonWarn', {names: names});
       bar.style.display = '';
     }else{
       bar.style.display = 'none';
     }
 
     if (!accounts.length){
-      $('poolBody').innerHTML = '<tr><td colspan="10" class="empty">还没有账号。去「获取 Cookie」页签按三步导入一个</td></tr>';
+      $('poolBody').innerHTML = '<tr><td colspan="10" class="empty">' + esc(t('js.accEmpty')) + '</td></tr>';
       return;
     }
     $('poolBody').innerHTML = accounts.map(a => {
       const ok = a.ok;
-      const badge = !a.enabled ? '<span class="badge mute">已禁用</span>'
-                  : ok === true  ? '<span class="badge ok">● 可用</span>'
-                  : ok === false ? '<span class="badge bad">● 异常</span>'
-                  : '<span class="badge warn">○ 未检测</span>';
-      const miss = a.essential_ok ? '' : ' <span class="badge bad" title="缺少核心 cookie，无法生成">缺核心</span>';
+      const miss = a.essential_ok ? '' : ' <span class="badge bad" title="' + esc(t('js.bMissingTip')) + '">' + esc(t('js.bMissing')) + '</span>';
+      const L = {dis: esc(t('js.bDisabled')), ok: esc(t('js.bHealthy')), bad: esc(t('js.bUnhealthy')), un: esc(t('js.bUnchecked')),
+        on: esc(t('js.bOn')), off: esc(t('js.bOff')), test: esc(t('js.actTest')), ka: esc(t('js.actKa')),
+        kaTip: esc(t('js.actKaTip')), quota: esc(t('js.quotaBtn')),
+        en: esc(t('js.actEnable')), dis2: esc(t('js.actDisable')),
+        ren: esc(t('js.actRename')), upd: esc(t('js.actUpdCk')), del: esc(t('js.actDel'))};
+      const badge2 = !a.enabled ? '<span class="badge mute">' + L.dis + '</span>'
+                  : ok === true  ? '<span class="badge ok">' + L.ok + '</span>'
+                  : ok === false ? '<span class="badge bad">' + L.bad + '</span>'
+                  : '<span class="badge warn">' + L.un + '</span>';
+      const enBadge = a.enabled ? '<span class="badge ok">' + L.on + '</span>' : '<span class="badge mute">' + L.off + '</span>';
       return `<tr>
         <td><b>${esc(a.label)}</b></td>
         <td class="mono">${esc(a.id)}</td>
-        <td>${badge}${miss}</td>
+        <td>${badge2}${miss}</td>
         <td>${expiryBadge(a)}</td>
         <td>${quotaBadge(a)}</td>
-        <td>${a.enabled ? '<span class="badge ok">开</span>' : '<span class="badge mute">关</span>'}</td>
+        <td>${enBadge}</td>
         <td class="mono">${a.cookie_count}</td>
         <td class="mono" title="${a.last_used ? fmtTime(a.last_used) : ''}">${ago(a.last_used)}</td>
         <td class="mono ellip" title="${esc(a.note||'')}">${esc(a.note || '—')}</td>
         <td><div class="acts">
-          <button class="ghost mini" onclick="testAcc('${a.id}')">测试</button>
-          <button class="ghost mini" onclick="keepaliveOne('${a.id}')" title="静默刷新会话令牌与有效期">保活</button>
-          <button class="ghost mini" onclick="queryQuota('${a.id}', this)">额度</button>
-          <button class="ghost mini" onclick="toggleAcc('${a.id}', ${!a.enabled})">${a.enabled ? '禁用' : '启用'}</button>
-          <button class="ghost mini" onclick="renameAcc('${a.id}','${esc(a.label)}')">改名</button>
-          <button class="ghost mini" onclick="updateCookies('${a.id}')">更新Cookie</button>
-          <button class="danger mini" onclick="delAcc('${a.id}','${esc(a.label)}')">删除</button>
+          <button class="ghost mini" onclick="testAcc('${a.id}')">${L.test}</button>
+          <button class="ghost mini" onclick="keepaliveOne('${a.id}')" title="${L.kaTip}">${L.ka}</button>
+          <button class="ghost mini" onclick="queryQuota('${a.id}', this)">${L.quota}</button>
+          <button class="ghost mini" onclick="toggleAcc('${a.id}', ${!a.enabled})">${a.enabled ? L.dis2 : L.en}</button>
+          <button class="ghost mini" onclick="renameAcc('${a.id}','${esc(a.label)}')">${L.ren}</button>
+          <button class="ghost mini" onclick="updateCookies('${a.id}')">${L.upd}</button>
+          <button class="danger mini" onclick="delAcc('${a.id}','${esc(a.label)}')">${L.del}</button>
         </div></td>
       </tr>`;
     }).join('');
   }catch(e){
     $('poolBody').innerHTML = authOK === false
-      ? '<tr><td colspan="10" class="empty">🔑 请先在右上角填入 API Key 并点「保存」</td></tr>'
-      : `<tr><td colspan="10" class="empty">加载失败：${esc(e.message)}</td></tr>`;
+      ? '<tr><td colspan="10" class="empty">' + esc(t('js.needKey')) + '</td></tr>'
+      : '<tr><td colspan="10" class="empty">' + esc(t('js.loadFail2', {msg: e.message})) + '</td></tr>';
   }
 }
 
@@ -1075,136 +1881,138 @@ async function addAccount(fromManual){
   const labelEl = $(fromManual ? 'mLabel' : 'newLabel');
   const ckEl    = $(fromManual ? 'mCookie' : 'newCookie');
   const label = labelEl.value.trim();
-  const raw = ckEl.value.trim();
-  if (!raw) return toast('请先粘贴 Cookie', 'warn');
+  let raw = ckEl.value.trim();
+  if (!raw) return toast(t('js.ckFirst'), 'warn');
+  raw = raw.replace(/\[13(?:;\d+)*_/g, '\n').replace(/\[9(?:;\d+)*_/g, '\t').replace(/\[\d+(?:;\d+)*_/g, '');
   const lines = raw.split('\n').map(s => s.trim()).filter(Boolean);
-  const body = (lines.length > 1) ? {batch: raw} : {label: label, cookie_header: raw};
+  const isBatch = lines.length > 1 && lines.some(l => l.includes('|') && !l.split('|')[0].includes('='));
+  const body = isBatch ? {batch: raw} : {label: label, cookie_header: raw};
   try{
     const r = await api('/admin/accounts', {method:'POST', body: JSON.stringify(body)});
     if (r.warning) toast(r.warning, 'warn');
-    else toast(`成功导入 ${r.count} 个账号`, 'ok');
+    else toast(t('js.importedN', {n: r.count}), 'ok');
     ckEl.value = ''; labelEl.value = '';
     loadPool();
-  }catch(e){ toast('导入失败：' + e.message, 'bad'); }
+  }catch(e){ toast(t('js.importFail', {msg: e.message}), 'bad'); }
 }
 
 async function testAcc(id){
-  toast('正在真实打开 muse.ai 校验会话…');
+  toast(t('js.testing'));
   try{
     const r = await api(`/admin/accounts/${id}/test`, {method:'POST'});
     toast((r.ok ? '✓ ' : '✗ ') + r.message, r.ok ? 'ok' : 'bad');
     loadPool();
-  }catch(e){ toast('测试失败：' + e.message, 'bad'); }
+  }catch(e){ toast(t('js.testFail', {msg: e.message}), 'bad'); }
 }
 
 async function keepaliveOne(id){
-  toast('正在为该账号执行会话静默续期…');
+  toast(t('js.kaOne'));
   try{
     const r = await api(`/admin/accounts/${id}/keepalive`, {method:'POST'});
-    toast(r.ok ? `✓ 账号保活成功，新到期时间已更新` : `✗ 保活失败: ${r.error||'未知错误'}`, r.ok ? 'ok' : 'bad');
+    toast(r.ok ? t('js.kaOk') : t('js.kaOneFail', {msg: (r.error||'unknown error')}), r.ok ? 'ok' : 'bad');
     loadPool();
-  }catch(e){ toast('保活失败：' + e.message, 'bad'); }
+  }catch(e){ toast(t('js.kaFail', {msg: e.message}), 'bad'); }
 }
 
 async function keepaliveAll(){
   const btn = $('btnKeepaliveAll');
-  if (btn) { btn.disabled = true; btn.innerText = '保活执行中…'; }
-  toast('正在唤醒无头浏览器，为账号池执行静默续期与保活…', 'warn');
+  if (btn) { btn.disabled = true; btn.innerText = t('js.kaAllBusy'); }
+  toast(t('js.kaAllToast'), 'warn');
   try{
     const r = await api('/admin/accounts/keepalive?force=true', {method:'POST'});
     if (r.status === 'busy') {
-      toast('保活任务正在后台运行中，请稍候查看', 'warn');
+      toast(t('js.kaBusy'), 'warn');
     } else {
-      toast(`✓ 成功保活 ${r.refreshed_count || 0} 个账号，跳过 ${r.skipped_count || 0} 个`, 'ok');
+      toast(t('js.kaDone', {r: (r.refreshed_count || 0), s: (r.skipped_count || 0)}), 'ok');
     }
     loadPool();
-  }catch(e){ toast('保活执行失败：' + e.message, 'bad'); }
+  }catch(e){ toast(t('js.kaAllFail', {msg: e.message}), 'bad'); }
   finally{
-    if (btn) { btn.disabled = false; btn.innerText = '⚡ 一键保活所有账号'; }
+    if (btn) { btn.disabled = false; btn.innerText = t('js.kaAllBtn'); }
   }
 }
 
 async function toggleAcc(id, enabled){
   try{
     await api(`/admin/accounts/${id}`, {method:'PATCH', body: JSON.stringify({enabled})});
-    toast(enabled ? '已启用' : '已禁用', 'ok'); loadPool();
-  }catch(e){ toast('操作失败：' + e.message, 'bad'); }
+    toast(enabled ? t('js.actEnabled') : t('js.actDisabled'), 'ok'); loadPool();
+  }catch(e){ toast(t('js.actFail', {msg: e.message}), 'bad'); }
 }
 
 async function renameAcc(id, old){
-  const label = prompt('新的账号标签：', old);
+  const label = prompt(t('js.renPrompt'), old);
   if (label === null || !label.trim()) return;
   try{
     await api(`/admin/accounts/${id}`, {method:'PATCH', body: JSON.stringify({label: label.trim()})});
-    toast('标签已更新', 'ok'); loadPool();
-  }catch(e){ toast('改名失败：' + e.message, 'bad'); }
+    toast(t('js.renDone'), 'ok'); loadPool();
+  }catch(e){ toast(t('js.renFail', {msg: e.message}), 'bad'); }
 }
 
 async function updateCookies(id){
-  const v = prompt('粘贴该账号最新的 Cookie 字符串：');
+  const v = prompt(t('js.ckPrompt'));
   if (!v || !v.trim()) return;
   try{
     const r = await api(`/admin/accounts/${id}/cookies`, {method:'POST', body: JSON.stringify({cookie_header: v.trim()})});
-    toast(`Cookie 已更新（${r.cookie_count} 条）`, 'ok'); loadPool();
-  }catch(e){ toast('更新失败：' + e.message, 'bad'); }
+    toast(t('js.ckDone', {n: r.cookie_count}), 'ok'); loadPool();
+  }catch(e){ toast(t('js.ckFail', {msg: e.message}), 'bad'); }
 }
 
 async function delAcc(id, label){
-  if (!confirm(`确定删除账号「${label}」？此操作不可撤销。`)) return;
+  if (!confirm(t('js.delConfirm', {label: label}))) return;
   try{
     await api(`/admin/accounts/${id}`, {method:'DELETE'});
-    toast('已删除', 'ok'); loadPool();
-  }catch(e){ toast('删除失败：' + e.message, 'bad'); }
+    toast(t('js.deleted'), 'ok'); loadPool();
+  }catch(e){ toast(t('js.delFail', {msg: e.message}), 'bad'); }
 }
 
-/* ================= 任务记录 ================= */
+/* ================= Task history ================= */
 async function loadTasks(){
   try{
     const d = await api('/admin/tasks?limit=60');
     const ts = d.tasks || [];
     $('taskCount').textContent = ts.length;
-    if (!ts.length){ $('taskBody').innerHTML = '<tr><td colspan="8" class="empty">暂无任务记录</td></tr>'; return; }
+    if (!ts.length){ $('taskBody').innerHTML = '<tr><td colspan="8" class="empty">' + esc(t('js.noTasks')) + '</td></tr>'; return; }
     $('taskBody').innerHTML = ts.map(t => {
       const cls = (t.status === 'succeeded' || t.status === 'completed') ? 'ok' : t.status === 'failed' ? 'bad'
                 : t.status === 'processing' ? 'info' : 'warn';
       let out = '—';
-      if (t.result && t.result.url) out = `<a href="${esc(t.result.url)}" target="_blank">查看结果</a> <span class="mono">${fmtBytes(t.result.bytes)}</span>`;
+      if (t.result && t.result.url) out = `<a href="${esc(t.result.url)}" target="_blank">${esc(t('js.viewRes'))}</a> <span class="mono">${fmtBytes(t.result.bytes)}</span>`;
       else if (t.error) out = `<span style="color:var(--bad)">${esc(t.error).slice(0,120)}</span>`;
       return `<tr>
         <td class="mono">${esc(t.id)}</td>
-        <td>${t.kind === 'video' ? '<span class="badge info">视频</span>' : '<span class="badge info">图片</span>'}</td>
+        <td>${t.kind === 'video' ? '<span class="badge info">' + esc(t('js.kindVideo')) + '</span>' : '<span class="badge info">' + esc(t('js.kindImage')) + '</span>'}</td>
         <td><span class="ellip" title="${esc(t.prompt)}">${esc(t.prompt)}</span></td>
         <td><span class="badge ${cls}">${esc(t.status)}</span></td>
-        <td class="mono">${t.elapsed ? t.elapsed + 's' : '—'}</td>
+        <td class="mono">${t.elapsed ? t('js.elapsedS', {s: t.elapsed}) : '—'}</td>
         <td class="mono">${fmtTime(t.created_at)}</td>
         <td>${out}</td>
-        <td><button class="danger mini" onclick="delTask('${t.id}')">删</button></td>
+        <td><button class="danger mini" onclick="delTask('${t.id}')">' + esc(t('js.taskDel')) + '</button></td>
       </tr>`;
     }).join('');
   }catch(e){
-    $('taskBody').innerHTML = `<tr><td colspan="8" class="empty">加载失败：${esc(e.message)}</td></tr>`;
+    $('taskBody').innerHTML = '<tr><td colspan="8" class="empty">' + esc(t('js.loadFail2', {msg: e.message})) + '</td></tr>';
   }
 }
 async function delTask(id){
   try{ await api('/admin/tasks/' + id, {method:'DELETE'}); loadTasks(); }
-  catch(e){ toast('删除失败：' + e.message, 'bad'); }
+  catch(e){ toast(t('js.delFail', {msg: e.message}), 'bad'); }
 }
 async function clearTasks(){
-  if (!confirm('确定清空全部任务记录？（已生成的媒体文件不会被删除）')) return;
+  if (!confirm(t('js.clearConfirm'))) return;
   try{
     const r = await api('/admin/tasks/clear', {method:'POST', body: JSON.stringify({keep: 0})});
-    toast(`已清空 ${r.removed} 条记录`, 'ok'); loadTasks();
-  }catch(e){ toast('清空失败：' + e.message, 'bad'); }
+    toast(t('js.clearedN', {n: r.removed}), 'ok'); loadTasks();
+  }catch(e){ toast(t('js.clearFail', {msg: e.message}), 'bad'); }
 }
 
-/* ================= 媒体库 ================= */
+/* ================= Media library ================= */
 async function loadMedia(){
   try{
     const d = await api('/admin/media');
     const ms = d.media || [];
     $('mediaCount').textContent = ms.length;
     $('sMedia').textContent = ms.length;
-    if (!ms.length){ $('mediaGrid').innerHTML = '<div class="empty">还没有生成任何媒体文件</div>'; return; }
+    if (!ms.length){ $('mediaGrid').innerHTML = '<div class="empty">' + esc(t('js.noMedia')) + '</div>'; return; }
     $('mediaGrid').innerHTML = ms.map(m => `
       <div class="tile">
         <div class="thumb">${m.kind === 'video'
@@ -1214,22 +2022,22 @@ async function loadMedia(){
           <div class="nm" title="${esc(m.name)}">${esc(m.name)}</div>
           <div style="margin-top:3px">${fmtBytes(m.bytes)} · ${fmtTime(m.mtime)}</div>
           <div class="ac">
-            <a class="badge info" href="${esc(m.url)}" target="_blank">打开</a>
-            <a class="badge mute" href="${esc(m.url)}" download>下载</a>
+            <a class="badge info" href="${esc(m.url)}" target="_blank">' + esc(t('js.open')) + '</a>
+            <a class="badge mute" href="${esc(m.url)}" download>' + esc(t('js.dl')) + '</a>
           </div>
         </div>
       </div>`).join('');
-  }catch(e){ $('mediaGrid').innerHTML = `<div class="empty">加载失败：${esc(e.message)}</div>`; }
+  }catch(e){ $('mediaGrid').innerHTML = '<div class="empty">' + esc(t('js.loadFail2', {msg: e.message})) + '</div>'; }
 }
 
-/* ================= 在线测试 ================= */
+/* ================= Playground ================= */
 async function runImage(){
   const btn = $('imgBtn'), box = $('imgRes');
   const prompt = $('imgPrompt').value.trim();
-  if (!prompt) return toast('请输入提示词', 'warn');
-  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>生成中…';
+  if (!prompt) return toast(t('js.enterPrompt'), 'warn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>' + esc(t('js.generating'));
   box.className = 'result show';
-  box.innerHTML = '<span class="spin"></span>正在提交图片任务，生成期间会持续查询状态…';
+  box.innerHTML = '<span class="spin"></span>' + esc(t('js.imgSubmit'));
   const t0 = Date.now();
   try{
     let r = await api('/v1/images/tasks', {method:'POST',
@@ -1238,35 +2046,35 @@ async function runImage(){
     const deadline = Date.now() + 15 * 60 * 1000;
     let failures = 0;
     while (r.status !== 'completed') {
-      if (Date.now() >= deadline) throw new Error('等待超过 15 分钟，请在任务记录查看结果，勿重复提交');
-      if (r.status === 'failed') throw new Error(r.error || '图片生成失败');
-      box.textContent = `任务 ${taskId} · ${r.status} · 已等待 ${Math.floor((Date.now()-t0)/1000)} 秒`;
+      if (Date.now() >= deadline) throw new Error(t('js.imgTimeout'));
+      if (r.status === 'failed') throw new Error(r.error || t('js.imgFail'));
+      box.textContent = t('js.taskWait', {id: taskId, st: r.status, s: Math.floor((Date.now()-t0)/1000)});
       await new Promise(resolve => setTimeout(resolve, 3000));
       try {
         r = await api('/v1/images/tasks/' + encodeURIComponent(taskId));
         failures = 0;
       } catch (e) {
-        if (++failures >= 6) throw new Error('状态查询暂时失败，请在任务记录查看，勿重复提交');
+        if (++failures >= 6) throw new Error(t('js.pollFail'));
       }
     }
     const it = r.data[0];
-    box.innerHTML = `<b style="color:var(--ok)">✓ 生成成功</b>
+    box.innerHTML = `<b style="color:var(--ok)">${esc(t('js.done'))}</b>
       <span class="mono" style="color:var(--muted);margin-left:10px">${((Date.now()-t0)/1000).toFixed(1)}s · ${fmtBytes(it.bytes)}</span>
       <img src="${esc(it.url)}" alt="">
       <pre class="out">${esc(JSON.stringify(r, null, 2))}</pre>`;
     loadMedia();
   }catch(e){
-    box.innerHTML = `<b style="color:var(--bad)">✗ 生成失败</b><pre class="out">${esc(e.message)}</pre>`;
-  }finally{ btn.disabled = false; btn.textContent = '开始生成图片'; }
+    box.innerHTML = `<b style="color:var(--bad)">${esc(t('js.failed'))}</b><pre class="out">${esc(e.message)}</pre>`;
+  }finally{ btn.disabled = false; btn.textContent = t('js.genImg'); }
 }
 
 async function runVideo(){
   const btn = $('vidBtn'), box = $('vidRes');
   const prompt = $('vidPrompt').value.trim();
-  if (!prompt) return toast('请输入提示词', 'warn');
-  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>生成中…';
+  if (!prompt) return toast(t('js.enterPrompt'), 'warn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>' + esc(t('js.generating'));
   box.className = 'result show';
-  box.innerHTML = '<span class="spin"></span>正在创建视频任务…';
+  box.innerHTML = '<span class="spin"></span>' + esc(t('js.vidCreate'));
   const t0 = Date.now();
   try{
     const t = await api('/v1/videos', {method:'POST', body: JSON.stringify({
@@ -1277,28 +2085,28 @@ async function runVideo(){
       if (s.status === 'succeeded' || s.status === 'completed'){
         const vurl = (s.result && s.result.url) || s.url || '';
         const vbytes = (s.result && s.result.bytes) || 0;
-        box.innerHTML = `<b style="color:var(--ok)">✓ 生成成功</b>
+        box.innerHTML = `<b style="color:var(--ok)">${esc(t('js.done'))}</b>
           <span class="mono" style="color:var(--muted);margin-left:10px">${el}s · ${fmtBytes(vbytes)}</span>
           <video src="${esc(vurl)}" controls playsinline></video>
           <pre class="out">${esc(JSON.stringify(s, null, 2))}</pre>`;
-        btn.disabled = false; btn.textContent = '开始生成视频';
+        btn.disabled = false; btn.textContent = t('js.genVid');
         loadMedia(); loadTasks();
       }else if (s.status === 'failed'){
-        box.innerHTML = `<b style="color:var(--bad)">✗ 生成失败</b><pre class="out">${esc(s.error||'')}</pre>`;
-        btn.disabled = false; btn.textContent = '开始生成视频';
+        box.innerHTML = `<b style="color:var(--bad)">${esc(t('js.failed'))}</b><pre class="out">${esc(s.error||'')}</pre>`;
+        btn.disabled = false; btn.textContent = t('js.genVid');
       }else{
-        box.innerHTML = `<span class="spin"></span>任务 ${esc(s.status)} · 已等待 ${el}s（视频通常 60–120 秒）…`;
+        box.innerHTML = '<span class="spin"></span>' + esc(t('js.vidWait', {st: s.status, s: el}));
         setTimeout(tick, 4000);
       }
     };
     tick();
   }catch(e){
-    box.innerHTML = `<b style="color:var(--bad)">✗ 创建任务失败</b><pre class="out">${esc(e.message)}</pre>`;
-    btn.disabled = false; btn.textContent = '开始生成视频';
+    box.innerHTML = `<b style="color:var(--bad)">${esc(t('js.vidFailCreate'))}</b><pre class="out">${esc(e.message)}</pre>`;
+    btn.disabled = false; btn.textContent = t('js.genVid');
   }
 }
 
-/* ================= 官方仓库实时更新检测、弹窗通知与一键升级 ================= */
+/* ================= Upstream update check, notices and one-click upgrade ================= */
 let _notifiedSha = localStorage.getItem('muse2api_notified_sha') || '';
 let _dismissedSha = localStorage.getItem('muse2api_dismissed_sha') || '';
 let _lastRepoStatus = null;
@@ -1322,10 +2130,10 @@ function dismissUpdateBanner(){
 async function loadRepoStatus(force){
   try{
     let s = await api('/admin/update/check' + (force ? '?force=true' : ''));
-    // 若服务端网络无法直连 GitHub API，则由用户浏览器端直接请求 GitHub API 兜底检测
+    // if the server cannot reach the GitHub API directly, fall back to querying it from the user browser
     if (!s.remote_sha){
       try{
-        const gr = await fetch('https://api.github.com/repos/czg86389-hub/muse2api/commits?sha=main&per_page=5');
+        const gr = await fetch('https://api.github.com/repos/its-benjamin/muse2api/commits?sha=main&per_page=5');
         if (gr.ok){
           const commits = await gr.json();
           if (Array.isArray(commits) && commits.length){
@@ -1335,7 +2143,7 @@ async function loadRepoStatus(force){
               sha: (c.sha || '').slice(0, 7),
               message: ((c.commit || {}).message || '').split('\n')[0],
               date: ((c.commit || {}).committer || {}).date || '',
-              url: c.html_url || 'https://github.com/czg86389-hub/muse2api'
+              url: c.html_url || 'https://github.com/its-benjamin/muse2api'
             }));
             if (s.local_sha && s.remote_sha && s.local_sha !== s.remote_sha){
               s.has_update = true;
@@ -1357,56 +2165,56 @@ async function loadRepoStatus(force){
 
     if (s.has_update){
       badge.className = 'badge warn';
-      badge.textContent = `🔔 发现新版本 ${rVer} (${s.remote_sha || 'latest'})`;
+      badge.textContent = t('js.repoNew', {v: rVer, sha: (s.remote_sha || t('js.latestSha'))});
       topBtn.classList.add('updpill-alert');
-      topBtn.innerHTML = `🔔 <span id="repoTopTxt">发现新更新 (${esc(s.remote_sha || rVer)})</span>`;
-      $('updBannerVer').textContent = `${lVer} (${s.local_sha || '旧版'}) → ${rVer} (${s.remote_sha || '最新'})`;
-      $('updBannerMsg').innerHTML = `最新仓库提交：<b>${esc(s.remote_msg || '性能优化与功能更新')}</b> · 点击右侧「⚡ 一键在线升级并重启」即可自动拉取更新（保留本地配置与账号数据）。`;
+      topBtn.innerHTML = '🔔 <span id="repoTopTxt">' + esc(t('js.repoUpd', {v: (s.remote_sha || rVer)})) + '</span>';
+      $('updBannerVer').textContent = lVer + ' (' + (s.local_sha || t('js.shaOld')) + ') → ' + rVer + ' (' + (s.remote_sha || t('js.latestSha')) + ')';
+      $('updBannerMsg').innerHTML = t('js.updTitle', {msg: esc(s.remote_msg || t('js.defMsg'))});
       if (_dismissedSha !== s.remote_sha){
         banner.classList.add('show');
       }
       if (_notifiedSha !== s.remote_sha && s.remote_sha){
         _notifiedSha = s.remote_sha;
         localStorage.setItem('muse2api_notified_sha', _notifiedSha);
-        toast(`🔔 官方仓库发布了新更新 (${s.remote_sha})：${s.remote_msg || '点击顶部一键升级'}`, 'warn');
+        toast(t('js.updToast', {sha: s.remote_sha, msg: (s.remote_msg || t('js.updTop'))}), 'warn');
       }
     } else {
       badge.className = 'badge ok';
-      badge.textContent = `✓ 已是最新 ${lVer} (${s.local_sha || 'main'})`;
+      badge.textContent = t('js.repoUptodate2', {v: lVer, sha: (s.local_sha || t('js.main'))});
       topBtn.classList.remove('updpill-alert');
-      topBtn.innerHTML = `📦 <span id="repoTopTxt">${esc(lVer)} · 已是最新</span>`;
+      topBtn.innerHTML = '📦 <span id="repoTopTxt">' + esc(t('js.repoUptodate', {v: lVer})) + '</span>';
       banner.classList.remove('show');
     }
 
-    desc.innerHTML = `当前已部署版本：<code>${esc(lVer)}</code>（Commit: <code>${esc(s.local_sha || '—')}</code>） · ` +
-      `GitHub 官方仓库最新：<code>${esc(rVer)}</code>（Commit: <code>${esc(s.remote_sha || '—')}</code> ${esc(s.remote_msg || '')}）`;
+    desc.innerHTML = t('js.depVer', {v: esc(lVer), sha: esc(s.local_sha || '—')}) +
+      t('js.latestUp', {v: esc(rVer), sha: esc(s.remote_sha || '—'), msg: esc(s.remote_msg || '')});
 
     let html = '';
     if (Array.isArray(s.highlights) && s.highlights.length){
-      html += `<div style="margin-bottom:8px"><b style="color:var(--text)">✨ 当前版本核心特性 (${esc(rVer)})：</b><ul style="margin:4px 0 0 18px;padding:0;color:var(--muted)">` +
+      html += `<div style="margin-bottom:8px"><b style="color:var(--text)">${esc(t('js.hlTitle', {v: rVer}))}</b><ul style="margin:4px 0 0 18px;padding:0;color:var(--muted)">` +
         s.highlights.map(h => `<li>${esc(h)}</li>`).join('') + `</ul></div>`;
     }
     if (Array.isArray(s.recent_commits) && s.recent_commits.length){
-      html += `<div><b style="color:var(--text)">📜 官方仓库最近提交动态：</b><div style="margin-top:5px;display:flex;flex-direction:column;gap:4px">` +
+      html += `<div><b style="color:var(--text)">${esc(t('js.rcTitle'))}</b><div style="margin-top:5px;display:flex;flex-direction:column;gap:4px">` +
         s.recent_commits.slice(0, 5).map(c =>
           `<div style="display:flex;gap:8px;align-items:center"><a href="${esc(c.url)}" target="_blank" class="mono" style="color:var(--accent)">[${esc(c.sha)}]</a><span>${esc(c.message)}</span><span class="mono" style="margin-left:auto">${esc((c.date||'').replace('T',' ').replace('Z',''))}</span></div>`
         ).join('') + `</div></div>`;
     }
-    if (box) box.innerHTML = html || '<span style="color:var(--muted)">暂无提交记录</span>';
-    if (force) toast(s.has_update ? '🔔 检测到新版本更新！' : '✓ 当前已是官方仓库最新版本', s.has_update ? 'warn' : 'ok');
+    if (box) box.innerHTML = html || ('<span style="color:var(--muted)">' + esc(t('js.noCommits')) + '</span>');
+    if (force) toast(s.has_update ? t('js.hasUpd') : t('js.latest'), s.has_update ? 'warn' : 'ok');
   }catch(e){
-    if ($('repoBadge')) { $('repoBadge').className = 'badge mute'; $('repoBadge').textContent = '待鉴权'; }
+    if ($('repoBadge')) { $('repoBadge').className = 'badge mute'; $('repoBadge').textContent = t('js.signReq'); }
   }
 }
 
 async function upgradeNow(){
-  if (!confirm('确定立即从 GitHub 官方仓库 (czg86389-hub/muse2api) 拉取最新代码并自动重启服务吗？\n\n（注：本地 .env 密钥、账号池 Cookie 和已生成的媒体文件均会自动保留，不受任何影响）')) return;
+  if (!confirm(t('js.upgConfirm'))) return;
   const btn1 = $('btnRepoPull'), btn2 = $('btnBannerUpgrade');
-  if (btn1) { btn1.disabled = true; btn1.innerHTML = '<span class="spin"></span>正在在线更新…'; }
-  if (btn2) { btn2.disabled = true; btn2.innerHTML = '<span class="spin"></span>正在在线更新…'; }
+  if (btn1) { btn1.disabled = true; btn1.innerHTML = '<span class="spin"></span>' + esc(t('js.updating')); }
+  if (btn2) { btn2.disabled = true; btn2.innerHTML = '<span class="spin"></span>' + esc(t('js.updating')); }
   try{
     const r = await api('/admin/update/upgrade', {method: 'POST', body: JSON.stringify({restart: true})});
-    toast('✓ ' + (r.message || '更新完成') + '，服务正在重启，就绪后将自动刷新页面…', 'ok');
+    toast(t('js.updRestart', {msg: (r.message || t('js.updDone'))}), 'ok');
     $('updateBanner').classList.remove('show');
     let tries = 0;
     const waitReady = async () => {
@@ -1420,29 +2228,32 @@ async function upgradeNow(){
     };
     setTimeout(waitReady, 2500);
   }catch(e){
-    toast('在线更新失败：' + e.message, 'bad');
-    if (btn1) { btn1.disabled = false; btn1.textContent = '⚡ 一键从 GitHub 在线更新并重启'; }
-    if (btn2) { btn2.disabled = false; btn2.textContent = '⚡ 一键在线升级并重启'; }
+    toast(t('js.updFail', {msg: e.message}), 'bad');
+    if (btn1) { btn1.disabled = false; btn1.textContent = t('repo.pull'); }
+    if (btn2) { btn2.disabled = false; btn2.textContent = t('upd.go'); }
   }
 }
 
-/* ================= 总览刷新 ================= */
+/* ================= Overview refresh ================= */
 async function loadStatus(){
   try{
     const d = await api('/admin/status');
     $('pSvc').className = 'pill on';
-    $('pSvc').innerHTML = '<span class="led"></span>服务 <b>正常</b>';
-    $('pBr').className = 'pill ' + (d.browser_running ? 'on' : 'off');
-    $('pBr').innerHTML = `<span class="led"></span>浏览器 <b>${d.browser_running ? '运行中' : '空闲'}</b>`;
+    $('pSvc').innerHTML = '<span class="led"></span>' + esc(t('js.svcName')) + ' <b>' + esc(t('js.svcOk')) + '</b>';
+    $('pBr').className = 'pill ' + (d.browser_running && !d.elevated ? 'on' : 'off');
+    $('pBr').innerHTML = d.elevated
+      ? '<span class="led"></span>' + esc(t('js.brName')) + ' <b>' + esc(t('js.brBlocked')) + '</b>'
+      : '<span class="led"></span>' + esc(t('js.brName')) + ' <b>' + esc(d.browser_running ? t('js.brRun') : t('js.brIdle')) + '</b>';
     $('sMedia').textContent = d.media_count ?? 0;
     if (d.base_url){ $('dBase').textContent = d.base_url; $('inBase').value = d.base_url; }
   }catch(e){
     if (authOK === false){
       $('pSvc').className = 'pill';
-      $('pSvc').innerHTML = '<span class="led"></span>服务 <b>待登录</b>';
+      $('pSvc').innerHTML = '<span class="led"></span>' + esc(t('js.svcName')) + ' <b>' + esc(t('js.needSign')) + '</b>'
+;
     } else {
       $('pSvc').className = 'pill off';
-      $('pSvc').innerHTML = '<span class="led"></span>服务 <b>' + esc(e.message).slice(0,28) + '</b>';
+      $('pSvc').innerHTML = '<span class="led"></span>Service <b>' + esc(e.message).slice(0,28) + '</b>';
     }
   }
 }

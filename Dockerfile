@@ -27,7 +27,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制代码与必要目录
-COPY admin.html app.py cdp.py config.py engine.py store.py version.json ./
+COPY admin.html app.py cdp.py config.py engine.py run.py store.py version.json ./
 COPY deploy/ ./deploy/
 COPY extension/ ./extension/
 COPY tools/ ./tools/
@@ -39,4 +39,4 @@ VOLUME ["/app/data"]
 
 EXPOSE 18610
 
-CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "18610"]
+CMD ["python", "run.py"]

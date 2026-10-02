@@ -1,4 +1,4 @@
-"""极简 Chrome DevTools Protocol 客户端（仅依赖 websocket-client / requests）。"""
+"""Minimal Chrome DevTools Protocol client (only depends on websocket-client / requests)."""
 from __future__ import annotations
 
 import json
@@ -34,7 +34,7 @@ class CDP:
                 if "error" in msg:
                     raise CDPError(f"{method}: {msg['error']}")
                 return msg
-        raise TimeoutError(f"CDP {method} 超时")
+        raise TimeoutError(f"CDP {method} timed out")
 
     def js(self, expr: str, await_promise: bool = False, timeout: float | None = None):
         r = self.send("Runtime.evaluate",
@@ -46,7 +46,7 @@ class CDP:
         return r.get("result")
 
     def pump(self, seconds: float, on_event=None, sock_timeout: float = 2.0):
-        """在 seconds 秒内持续读取事件，交给回调处理。"""
+        """Keep reading events for `seconds` seconds and dispatch them to the callback."""
         end = time.time() + seconds
         self.ws.settimeout(sock_timeout)
         while time.time() < end:

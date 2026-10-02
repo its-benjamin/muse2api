@@ -10,8 +10,10 @@ source = next((a for a in sys.argv[1:] if not a.startswith('--')), str(ROOT/'eng
 spec=importlib.util.spec_from_file_location('candidate',source)
 module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 from types import SimpleNamespace
-# snap Chromium needs a non-hidden writable profile under HOME, not /tmp.
-with tempfile.TemporaryDirectory(prefix='muse-media-test-', dir=Path.home()) as tmp:
+# Windows cannot delete files with open handles (chromium.log, profile locks),
+# so tolerate cleanup races there; the test result itself is already printed.
+_tmp_kwargs = {"ignore_cleanup_errors": True} if sys.version_info >= (3, 10) else {}
+with tempfile.TemporaryDirectory(prefix='muse-media-test-', dir=Path.home(), **_tmp_kwargs) as tmp:
  with socket.socket() as sock:
   sock.bind(('127.0.0.1',0)); port=sock.getsockname()[1]
  chromium=os.environ.get('MUSE2API_CHROMIUM') or next((shutil.which(n) for n in ('chromium','chromium-browser','google-chrome') if shutil.which(n)),None)

@@ -1,10 +1,14 @@
 {
-  "version": "1.5.3",
-  "updated_at": "2026-10-01",
-  "repo": "https://github.com/czg86389-hub/muse2api",
+  "version": "1.6.0",
+  "updated_at": "2026-10-02",
+  "repo": "https://github.com/its-benjamin/muse2api",
+  "upstream": "https://github.com/czg86389-hub/muse2api",
   "highlights": [
-    "修复 HTTP 403、网络超时被误判为 Cookie 失效；保留上次已确认的账号状态",
-    "修复上游 5xx 和未分配会话被误报保活成功；保留完整 HTTP 诊断",
-    "保活不再凭空延长 Cookie 有效期；新增账号健康回归测试"
+    "Full native Windows local compatibility (start-windows.bat & start-windows.ps1, admin detection)",
+    "Complete EN / 中文 bilingual switch in Web Console and Chrome Extension with i18n dictionary",
+    "Anti-bot stealth hardening: WebGL hardware spoofing, desktop UA/client-hints emulation, automation signature purging",
+    "Speed optimizations: eliminated full-DOM layout thrashing during streaming, faster attachment polling, reduced input latency",
+    "Universal cookie import: Netscape cookies.txt and Firefox/Chrome DevTools JSON support",
+    "Configurable browser idle shutdown (MUSE2API_BROWSER_IDLE_MIN) and experimental HTTP/2 (MUSE2API_HTTP2)"
   ]
 }
