@@ -33,21 +33,27 @@ if ($LASTEXITCODE -ne 0) {
   exit 1
 }
 
+# Load every key=value from .env into the process environment.
+# This makes all MUSE2API_* settings available to Python via os.environ,
+# and lets the lines below show the correct host/port/key.
+foreach ($line in Get-Content '.env') {
+  $line = $line.Trim()
+  if ($line -eq '' -or $line.StartsWith('#')) { continue }
+  $idx = $line.IndexOf('=')
+  if ($idx -lt 1) { continue }
+  $k = $line.Substring(0, $idx).Trim()
+  $v = $line.Substring($idx + 1).Trim().Trim('"').Trim("'")
+  if ($k -ne '') { [System.Environment]::SetEnvironmentVariable($k, $v, 'Process') }
+}
+
+# Fallback defaults if .env left them empty
 if (-not $env:MUSE2API_HOST) { $env:MUSE2API_HOST = '127.0.0.1' }
 if (-not $env:MUSE2API_PORT) { $env:MUSE2API_PORT = '18610' }
 
-# Read MUSE2API_KEY from .env so the admin URL is correct
-$envKey = ''
-if (Test-Path '.env') {
-  foreach ($line in Get-Content '.env') {
-    if ($line -match '^MUSE2API_KEY\s*=\s*(.+)$') { $envKey = $Matches[1].Trim(); break }
-  }
-}
-
 Write-Host ''
 Write-Host "[INFO] Starting muse2api at http://$($env:MUSE2API_HOST):$($env:MUSE2API_PORT) ..."
-if ($envKey) {
-  Write-Host "[INFO] Admin panel: http://$($env:MUSE2API_HOST):$($env:MUSE2API_PORT)/?key=$envKey"
+if ($env:MUSE2API_KEY) {
+  Write-Host "[INFO] Admin panel: http://$($env:MUSE2API_HOST):$($env:MUSE2API_PORT)/?key=$($env:MUSE2API_KEY)"
 } else {
   Write-Host "[INFO] Admin panel: http://$($env:MUSE2API_HOST):$($env:MUSE2API_PORT)/  (key will be auto-generated and printed below as 'm2a_...')"
 }

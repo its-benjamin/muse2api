@@ -34,14 +34,17 @@ if errorlevel 1 (
   exit /b 1
 )
 
+rem Load every key=value from .env into the shell environment.
+rem This makes all MUSE2API_* settings available to Python via os.environ,
+rem and lets the echo below show the correct host/port/key.
+rem Lines starting with # and blank lines are ignored by FOR automatically.
+for /f "usebackq tokens=1,* delims==" %%A in (".env") do (
+  echo(%%A| findstr /r "^[^#]" >nul 2>&1 && set "%%A=%%B"
+)
+
+rem Fallback defaults if .env left them empty
 if "%MUSE2API_HOST%"=="" set MUSE2API_HOST=127.0.0.1
 if "%MUSE2API_PORT%"=="" set MUSE2API_PORT=18610
-
-rem Read MUSE2API_KEY from .env so the admin URL is correct
-set MUSE2API_KEY=
-for /f "usebackq tokens=1,* delims==" %%A in (".env") do (
-  if /i "%%A"=="MUSE2API_KEY" set MUSE2API_KEY=%%B
-)
 
 echo.
 echo [INFO] Starting muse2api at http://%MUSE2API_HOST%:%MUSE2API_PORT% ...
