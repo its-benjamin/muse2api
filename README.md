@@ -1,375 +1,278 @@
-# MUSE2API
+# muse2api
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.10%2B-blue?logo=python" alt="Python Version" />
+  <img src="https://img.shields.io/badge/Python-3.10%2B-blue?logo=python" alt="Python" />
   <img src="https://img.shields.io/badge/FastAPI-0.115%2B-009688?logo=fastapi" alt="FastAPI" />
   <img src="https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker" alt="Docker" />
-  <img src="https://img.shields.io/badge/API-OpenAI%20Compatible-green" alt="OpenAI API Compatible" />
-  <img src="https://img.shields.io/badge/License-MIT-orange" alt="License" />
-  <a href="https://linux.do/" target="_blank"><img src="https://img.shields.io/badge/Community-LINUX%20DO-111827?logo=linux&logoColor=white" alt="LINUX DO" /></a>
+  <img src="https://img.shields.io/badge/API-OpenAI%20Compatible-green" alt="OpenAI Compatible" />
+  <img src="https://img.shields.io/badge/License-MIT-orange" alt="MIT License" />
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey" alt="Platform" />
 </p>
 
 <p align="center">
-  This open-source project is linked with and endorses <b><a href="https://linux.do/" target="_blank">the LINUX DO community (https://linux.do/)</a></b> — a sincere, friendly, united, professional community
+  <b>OpenAI-compatible API for <a href="https://muse.ai/">muse.ai</a> — chat, image generation, video generation, multi-account pool, and automatic session renewal.</b>
 </p>
 
-> 🌟 **Fork Information**: This repository is maintained at **[its-benjamin/muse2api](https://github.com/its-benjamin/muse2api)**. It is an enhanced fork of the original project by **[czg86389-hub/muse2api](https://github.com/czg86389-hub/muse2api)**, bringing native Windows local support, bilingual English/Chinese Web UI, hardened anti-bot stealth, CPU & speed optimizations, universal cookie import formats, and experimental HTTP/2 support. All core architecture and reverse-engineering credits belong to the original upstream author and the **LINUX DO** community.
-
-Wraps the cutting-edge multimodal capabilities of the **[muse.ai](https://muse.ai/)** web app as a standard **OpenAI-compatible RESTful API** via reverse engineering. Headless-browser CDP passthrough, warm-standby WebSocket tunnel reuse, and dynamic session management natively support text chat (2–3s streaming first-token latency), text-to-image, image-edit, text-to-video, and first-frame video, plus multi-account-pool affinity rotation, fully automatic 48-hour session renewal with cloud VM wake/keepalive, and a companion Chrome one-click account-import extension.
----
-
-## Core Features
-
-- **Standard chat API (Chat Completions & Responses API)**
-  - Fully compatible with the `/v1/chat/completions` and `/v1/responses` (default in new Codex) protocols.
-  - Native SSE streaming typewriter output (`stream=True`) plus sync full responses, with warm-tab and Noise WebSocket tunnel affinity reuse — **first-token latency of just 2–3s in follow-up turns**.
-  - Multi-turn context and System Prompt support.
-  - Built-in smart model alias mapping: common names like `gpt-4o`, `gpt-5`, `claude-sonnet-4`, `deepseek-chat` route automatically.
-- **High-quality image generation & editing (Images Generations & Edits)**
-  - Fully compatible `/v1/images/generations` (text-to-image) and `/v1/images/edits` (image-to-image / reference editing) endpoints.
-  - Multiple aspect ratios (`1:1`, `16:9`, `9:16`, `4:3`, `3:4`), direct reference-image upload, and clean watermark-free output.
-  - Both `url` and `b64_json` return formats, with second-level fast detection of plain-text refusals so queues never deadlock.
-  - Image edits return only newly generated media: upload previews and history attachments are excluded, downloads bind to the selected result; unconfirmed reference uploads or prompt sends raise explicit errors instead of silently returning the source image.
-- **Text-to-video / image-to-video (Videos)**
-  - Native integration with Muse's top video model; duration requests of 5s / 6s / 8s / 10s (final length follows the upstream output) and `9:16` portrait / `16:9` landscape generation.
-  - Strict first-frame video creation from an uploaded first-frame reference (Data URL / HTTP URL).
-  - Async task architecture (`/v1/videos` to create + `/v1/videos/{task_id}` polling).
-  - Built-in media service `/v1/media/{filename}` that persists generated MP4 / WebP assets automatically.
-- **Multi-account pool with warm-connection affinity scheduling**
-  - Import an unlimited matrix of Muse accounts.
-  - Smart dispatch on warm-tab affinity + LRU, balancing 2s-class fast responses with even consumption across accounts.
-  - On quota exhaustion or session errors, the account is flagged and traffic fails over to a healthy standby with zero perceived delay.
-- **Fully automatic 48h session renewal + cloud VM keepalive**
-  - Original background heartbeat coroutine hits `/api/session` directly to renew `hatch_vml` (+48h) and `hatch_sess` (+30d), and calls `/api/hatch/vm/wake` to keep the cloud workspace VM warm.
-  - Fully solves the static 48h Meta cookie expiry and VM sleep-disconnect problems — no frequent re-logins.
-- **Companion Chrome one-click import extension**
-  - No manual F12 cookie hunting: one click on the extension icon extracts the current browser login state (including `HttpOnly` core cookies with real expiry times) and pushes it safely to the pool.
-- **Modern dark ops console (Web Console) with live online upgrades**
-  - Built-in ready-to-use Web UI: live service health, pool quotas and status, one-click whole-pool keepalive, task progress replay, media library management, and online API debugging.
-  - **Live update broadcast + one-click upgrade across all nodes**: when the official GitHub repo publishes a new version or fix, every deployed node's admin panel shows an update banner at the top; clicking **"One-click online upgrade & restart"** pulls the latest code and restarts gracefully (local `.env` config and account data are preserved).
+> **Fork notice:** This is an enhanced fork of [czg86389-hub/muse2api](https://github.com/czg86389-hub/muse2api) with native **Windows support**, bilingual EN/ZH admin UI, hardened anti-bot stealth, speed optimisations, and universal cookie import. All core reverse-engineering credit goes to the original author and the [LINUX DO](https://linux.do/) community.
 
 ---
 
-## Quick Deploy
+## What it does
 
-### Option 0: Run locally on Windows (no server, double-click to use)
+muse2api wraps [muse.ai](https://muse.ai/)'s web interface as a drop-in OpenAI-compatible REST API. Any client that speaks OpenAI's API (ChatGPT apps, Cursor, Continue, LangChain, curl, …) works out of the box — no code changes needed.
 
-1. Install [Python 3.10+](https://www.python.org/downloads/) (check **Add python.exe to PATH** during setup); having Chrome / Edge installed locally is enough (auto-detected, no manual setup).
-2. Download and unzip this repo (or `git clone https://github.com/its-benjamin/muse2api.git`), then double-click **`start-windows.bat`** (Command Prompt) or right-click **`start-windows.ps1`** → *Run with PowerShell`.
-   (In a PowerShell terminal, run `.\start-windows.ps1` — or `.\start-windows.bat` — with the `.\` prefix; bare names don't resolve in PowerShell.)
-3. On first launch an auto-generated key (`m2a_...`) is printed in the console window; open the admin panel:
-   `http://127.0.0.1:18610/?key=<YOUR_MUSE2API_KEY>`
-4. Use the Chrome extension in the admin panel to import your muse.ai login state in one click, then start calling the API. Closing the console window stops the service.
+| Capability | Endpoint |
+|---|---|
+| Chat (streaming + sync) | `POST /v1/chat/completions` |
+| Image generation | `POST /v1/images/generations` |
+| Image editing | `POST /v1/images/edits` |
+| Video generation | `POST /v1/videos` |
+| Video status polling | `GET /v1/videos/{task_id}` |
+| Serve generated media | `GET /v1/media/{filename}` |
 
-> Manual start: `python -m pip install -r requirements.txt`, then
-> `python -m uvicorn app:app --host 127.0.0.1 --port 18610`.
+**Key features:**
 
----
-
-### Option 1: Docker Compose (recommended, one command out of the box)
-
-1. **Clone the repo and enter the directory**:
-   ```bash
-   git clone https://github.com/its-benjamin/muse2api.git
-   cd muse2api
-   ```
-
-2. **Configure environment variables (optional)**:
-   ```bash
-   cp .env.example .env
-   # Edit .env as needed; setting MUSE2API_KEY to your own admin key is recommended
-   ```
-
-3. **Start the containers**:
-   ```bash
-   docker compose up -d
-   ```
-
-4. **Open the admin panel**:
-   Open in a browser: `http://<YOUR_SERVER_IP>:18610/admin?key=<YOUR_MUSE2API_KEY>`
+- **Multi-account pool** — import multiple muse.ai accounts; requests are load-balanced and automatically fail over
+- **Auto session renewal** — background keepalive hits `/api/session` every 15 min to renew cookies before they expire (solves the 48 h Meta cookie limit)
+- **Anti-bot stealth** — two-layer JS injection (puppeteer-extra 16 evasions + dynamic hardware/canvas/audio overrides matched to your real Chrome version)
+- **Windows-native** — auto-detects Chrome/Edge, no WSL needed; `start-windows.bat` double-click launch
+- **Admin web UI** — live account status, quota, one-click keepalive, media library, API testing, online upgrade
 
 ---
 
-### Option 2: Bare-metal / VPS deploy (Ubuntu / Debian)
+## Quick start
 
-1. **Install system dependencies and Chromium**:
-   ```bash
-   sudo apt-get update
-   sudo apt-get install -y chromium fonts-wqy-zenhei python3 python3-pip python3-venv
-   ```
+> **New here?** → Read the full [Installation Guide](INSTALLATION.md) — it covers every platform step by step with screenshots.
 
-2. **Set up a Python virtualenv**:
-   ```bash
-   cd /opt/muse2api
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
+### Windows (local, no server needed)
 
-3. **Configure the systemd service**:
-   ```bash
-   sudo cp deploy/muse2api.service /etc/systemd/system/
-   sudo systemctl daemon-reload
-   sudo systemctl enable --now muse2api
-   ```
+```
+1. Install Python 3.10+ (tick "Add python.exe to PATH")
+2. Install Chrome or Edge (already installed on most Windows machines)
+3. Download this repo → double-click start-windows.bat
+4. Open http://127.0.0.1:18610 in your browser
+5. Import your muse.ai account using the Chrome extension or Tampermonkey script
+6. Start using the API
+```
 
-4. **Nginx reverse-proxy config (important: prevents 502 timeouts and streaming stalls)**:
-   If proxying with Nginx / aaPanel / 1Panel, be sure to raise `proxy_read_timeout` to `600s` and turn off `proxy_buffering` (see `deploy/nginx.example.conf`):
-   ```nginx
-   location / {
-       proxy_pass http://127.0.0.1:18610;
-       proxy_read_timeout 600s;      # avoid Nginx 502 Bad Gateway on slow image/video jobs
-       proxy_send_timeout 600s;
-       proxy_buffering off;          # keep SSE chat streaming at 0 delay
-       client_max_body_size 64M;     # allow large reference-image uploads
-       proxy_set_header Host $host;
-       proxy_set_header X-Real-IP $remote_addr;
-       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-   }
-   ```
+### Docker (Linux / VPS — recommended for servers)
+
+```bash
+git clone https://github.com/its-benjamin/muse2api.git
+cd muse2api
+cp .env.example .env          # optional: set MUSE2API_KEY
+docker compose up -d
+# Admin panel: http://<YOUR_IP>:18610
+```
+
+### Linux bare-metal
+
+```bash
+sudo apt-get install -y chromium python3 python3-pip python3-venv
+git clone https://github.com/its-benjamin/muse2api.git
+cd muse2api
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+python run.py
+```
 
 ---
 
-## Account Import (Chrome Extension / Tampermonkey)
+## Import your muse.ai account
 
-### Option A: Chrome / Edge Extension
+You need to give muse2api your muse.ai session cookies. Two ways:
 
-The project ships a dedicated Chrome import extension (in `extension/`), so no more fiddly F12 cookie extraction:
+### Option A — Chrome / Edge extension (easiest)
 
-1. Open Chrome / Edge, visit `chrome://extensions`, and turn on **Developer mode** (top-right).
-2. Click **Load unpacked** and select the `extension` directory of this project.
-3. Log in to [muse.ai](https://muse.ai/) in that browser until the main chat UI appears.
-4. Click the extension icon in the toolbar and fill in your service URL (e.g. `http://1.2.3.4:18610`) and `MUSE2API_KEY`.
-5. Click **Read and import** — synced into the pool within seconds!
+1. Open `chrome://extensions` → enable **Developer mode**
+2. Click **Load unpacked** → select the `extension/` folder in this repo
+3. Log in to [muse.ai](https://muse.ai/)
+4. Click the extension icon → enter your service URL + `MUSE2API_KEY` → **Read and import**
 
-### Option B: Tampermonkey Userscript (cross-browser, no developer mode needed)
+### Option B — Tampermonkey userscript (Firefox / Safari / no dev mode)
 
-For users who prefer not to enable developer mode, or who use Firefox / Safari:
+1. Install [Tampermonkey](https://www.tampermonkey.net/)
+2. Create a new script, paste `tools/muse2api_cookie_importer.user.js`, save
+3. Open [muse.ai](https://muse.ai/) → click the **⚡ Import to muse2api** button
 
-1. Install the [Tampermonkey](https://www.tampermonkey.net/) extension in your browser.
-2. Create a new userscript and paste the contents of `tools/muse2api_cookie_importer.user.js`, then save.
-3. Open [muse.ai](https://muse.ai/) — a **⚡ Import to muse2api** floating button appears at the bottom-right. Right-click to configure your service URL and API key; left-click to push cookies into the pool (also copies to clipboard as a fallback).
+> See [INSTALLATION.md § Importing your account](INSTALLATION.md#importing-your-muse-ai-account) for screenshots and troubleshooting.
 
 ---
 
-## API Examples
+## API usage
 
-All protected endpoints require this header:
+All endpoints require:
 ```http
 Authorization: Bearer <YOUR_MUSE2API_KEY>
 ```
 
-### 1. Chat Completions
+### Chat
 
 ```bash
-curl -X POST "http://localhost:18610/v1/chat/completions" \
-  -H "Authorization: Bearer m2a_your_secret_key" \
+curl -X POST http://localhost:18610/v1/chat/completions \
+  -H "Authorization: Bearer m2a_your_key" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "muse-spark",
-    "messages": [
-      {"role": "user", "content": "Write a seven-character quatrain about cyberpunk and neon night rain"}
-    ],
+    "messages": [{"role": "user", "content": "Hello!"}],
     "stream": false
   }'
 ```
 
-### 2. Text-to-Image (Image Generation)
+### Image generation
 
 ```bash
-curl -X POST "http://localhost:18610/v1/images/generations" \
-  -H "Authorization: Bearer m2a_your_secret_key" \
+curl -X POST http://localhost:18610/v1/images/generations \
+  -H "Authorization: Bearer m2a_your_key" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "muse-image",
-    "prompt": "A robotic Shiba Inu in an anti-gravity spacesuit, cinematic lighting, 8k resolution",
+    "prompt": "A futuristic city skyline at sunset, 8K",
     "size": "16:9",
     "response_format": "url"
   }'
 ```
 
-**Response example**:
-```json
-{
-  "created": 1790148495,
-  "data": [
-    {
-      "revised_prompt": "A robotic Shiba Inu in an anti-gravity spacesuit, cinematic lighting, 8k resolution",
-      "url": "http://localhost:18610/v1/media/img_abc123.webp",
-      "kind": "image",
-      "bytes": 54210
-    }
-  ]
+### Video generation (async)
+
+```bash
+# Step 1 — create task
+curl -X POST http://localhost:18610/v1/videos \
+  -H "Authorization: Bearer m2a_your_key" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Ocean waves crashing on rocks", "duration": 5, "size": "16:9"}'
+# → {"id": "task_xyz", "status": "queued"}
+
+# Step 2 — poll until done
+curl http://localhost:18610/v1/videos/task_xyz \
+  -H "Authorization: Bearer m2a_your_key"
+# → {"status": "succeeded", "result": {"url": "http://localhost:18610/v1/media/vid_xyz.mp4"}}
+```
+
+**Supported model aliases:** `gpt-4o`, `gpt-5`, `claude-sonnet-4`, `deepseek-chat`, `muse-spark`, `muse-image`, and more — they all route to the same Muse backend.
+
+---
+
+## Environment variables
+
+Copy `.env.example` to `.env` and edit as needed.
+
+| Variable | Default | Description |
+|---|---|---|
+| `MUSE2API_KEY` | auto-generated | Admin + API auth key (printed on first start) |
+| `MUSE2API_HOST` | `0.0.0.0` | Listen IP (`127.0.0.1` = local only) |
+| `MUSE2API_PORT` | `18610` | HTTP port |
+| `MUSE2API_PUBLIC_BASE` | _(empty)_ | Public URL prefix (leave empty for auto-detect) |
+| `MUSE2API_CHROMIUM` | _(auto)_ | Path to Chrome/Chromium executable |
+| `MUSE2API_CDP_PORT` | `19210` | Internal Chrome DevTools port |
+| `MUSE2API_CHAT_TIMEOUT` | `300` | Chat timeout in seconds |
+| `MUSE2API_IMAGE_TIMEOUT` | `240` | Image generation timeout in seconds |
+| `MUSE2API_VIDEO_TIMEOUT` | `600` | Video generation timeout in seconds |
+| `MUSE2API_BROWSER_IDLE_MIN` | `0` | Stop browser after N idle minutes to save ~700 MB RAM; `0` = always warm. Recommended: `10`–`15` on low-RAM machines |
+| `MUSE2API_KEEPALIVE_DISABLED_ACCOUNTS` | `0` | `1` = run keepalive on manually disabled accounts too |
+| `MUSE2API_HTTP2` | `0` | `1` = experimental HTTP/2 via zttp |
+
+---
+
+## Nginx reverse proxy
+
+If you put muse2api behind Nginx, use these settings to prevent 502 errors on long jobs:
+
+```nginx
+location / {
+    proxy_pass         http://127.0.0.1:18610;
+    proxy_read_timeout 600s;
+    proxy_send_timeout 600s;
+    proxy_buffering    off;
+    client_max_body_size 64M;
+    proxy_set_header   Host              $host;
+    proxy_set_header   X-Real-IP         $remote_addr;
+    proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
 }
 ```
 
-### 3. Text-to-Video / Image-to-Video (Videos)
+---
 
-- **Step 1: create the generation task**
-  ```bash
-  curl -X POST "http://localhost:18610/v1/videos" \
-    -H "Authorization: Bearer m2a_your_secret_key" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "prompt": "Golden maple leaves drifting lightly in a breeze, sunlight through the treetops",
-      "duration": 5,
-      "size": "16:9"
-    }'
-  ```
-  Returns the task ID: `{"id": "task_xyz789", "status": "queued"}`
+## Troubleshooting
 
-- **Step 2: poll the task status**
-  ```bash
-  curl "http://localhost:18610/v1/videos/task_xyz789" \
-    -H "Authorization: Bearer m2a_your_secret_key"
-  ```
-  On completion it returns:
-  ```json
-  {
-    "id": "task_xyz789",
-    "status": "succeeded",
-    "progress": 100,
-    "result": {
-      "url": "http://localhost:18610/v1/media/vid_xyz789.mp4"
-    }
-  }
-  ```
+| Symptom | Fix |
+|---|---|
+| `/api/session` returns 401 | Cookies expired — re-import via extension or Tampermonkey |
+| `/api/session` returns 403 | Regional block or account permissions issue — check your VPS egress IP |
+| Browser won't start on Windows | Do **not** run as Administrator; Chrome exits immediately when elevated |
+| Admin panel unreachable | Check firewall; use `127.0.0.1` in `MUSE2API_HOST` for local-only access |
+| High RAM usage (~700 MB) | Set `MUSE2API_BROWSER_IDLE_MIN=10` to free RAM when idle |
+| Video/image times out | Raise `MUSE2API_VIDEO_TIMEOUT` / `MUSE2API_IMAGE_TIMEOUT`; check your proxy `proxy_read_timeout` |
+
+See [INSTALLATION.md](INSTALLATION.md) for more detailed troubleshooting.
 
 ---
 
-## Environment Variables
+## Project structure
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `MUSE2API_KEY` | auto-generated | Admin console & API auth key (starts with `m2a_`) |
-| `MUSE2API_HOST` | `0.0.0.0` | Listen IP (use `127.0.0.1` to restrict to local machine only) |
-| `MUSE2API_PORT` | `18610` | Service port |
-| `MUSE2API_PUBLIC_BASE` | empty | Public base URL prefix; when empty the frontend auto-detects the visit origin |
-| `MUSE2API_CHROMIUM` | empty (auto-detect) | Browser executable path; leave empty to auto-find Chrome / Edge |
-| `MUSE2API_CDP_PORT` | `19210` | Internal CDP debug port |
-| `MUSE2API_IMAGE_TIMEOUT` | `240` | Image generation timeout (s) |
-| `MUSE2API_VIDEO_TIMEOUT` | `600` | Video generation timeout (s) |
-| `MUSE2API_CHAT_TIMEOUT` | `300` | Chat generation timeout (s) |
-| `MUSE2API_BROWSER_IDLE_MIN` | `0` | Stop the headless browser after N idle minutes to free ~200-400MB RAM (0 = stay warm for fastest response). Next request relaunches it (~5-10s cold start). Recommended `10`-`15` on local/low-RAM machines. |
-| `MUSE2API_HTTP2` | `0` | Experimental HTTP/2 (`1` = serve HTTP/1.1 + HTTP/2 via zttp, needs `pip install zttp`). Browsers only use H2 over TLS, so browser-facing H2 needs a TLS reverse proxy in front. |
----
-
-## 🌐 Language Switching & UI Translations (i18n)
-
-- **One-click Language Toggle**: Both the Web Console and the Chrome Extension include a top-bar toggle button (`EN` / `中文`). Preference is saved to `localStorage` and defaults automatically to your browser language.
-- **Easily Adding Translations for New UI Elements**:
-  When the repository updates or you add new UI components to `admin.html`:
-  1. **Static HTML Elements**: tag the element with `data-i18n="category.key"` (or `data-i18n-ph="category.key"` for placeholders, `data-i18n-title="category.key"` for tooltips):
-     ```html
-     <button data-i18n="my.button">Default Label</button>
-     ```
-  2. **Dynamic JS Strings**: use `t('category.key')` or `t('category.key', { param: 'value' })`:
-     ```javascript
-     toast(t('my.toastMessage'), 'ok');
-     ```
-  3. **Dictionary Registration**: add the key to both `en` and `zh` objects in the `const I18N = { en: {...}, zh: {...} }` block at the top of `<script>` in `admin.html`.
-  4. **Graceful Fallback**: If a key is missing in Chinese, it automatically falls back to the English string; if missing in both, it displays the key itself without crashing.
+```
+muse2api/
+├── app.py                  # FastAPI application + all API endpoints
+├── engine.py               # Headless browser automation (CDP)
+├── cdp.py                  # Minimal Chrome DevTools Protocol client
+├── config.py               # Configuration (env vars)
+├── run.py                  # Entrypoint (HTTP/1.1 + optional HTTP/2)
+├── admin.html              # Web admin UI (EN/ZH bilingual)
+├── extension/              # Chrome/Edge cookie import extension
+├── tools/
+│   ├── muse2api_cookie_importer.user.js   # Tampermonkey userscript
+│   └── stealth.min.js                     # Puppeteer-extra stealth bundle
+├── deploy/
+│   ├── muse2api.service    # systemd service file
+│   └── nginx.example.conf  # Nginx reverse proxy config
+├── tests/                  # Regression tests (no real account needed)
+├── .env.example            # All environment variables with comments
+├── docker-compose.yml      # Docker Compose config
+├── Dockerfile              # Docker image definition
+├── INSTALLATION.md         # Full setup tutorial ← start here
+└── CONTRIBUTING.md         # How to contribute
+```
 
 ---
 
-## HTTP/2
+## Security & privacy
 
-- **Native, experimental, opt-in:** set `MUSE2API_HTTP2=1` (or pass `--http zttp --http2` manually).
-  Uvicorn then serves HTTP/1.1 + HTTP/2 (h2c prior-knowledge) on the same port — verified live with a raw H2 preface.
-  Caveats: experimental (no WebSocket-over-H2; plain WebSocket still runs over H1, which is fine for this app),
-  and **browsers only speak H2 over TLS**, so browser-facing H2 needs a TLS reverse proxy in front.
-- **Do you need it?** On localhost: no measurable gain. H2 pays off for high-latency remote clients
-  (multiplexing, header compression). SSE streaming works over both versions.
-
-## Security & Privacy
-
-- **Zero data exfiltration**: all data (account credentials, task queue, media files) is persisted locally in `data/`, with no third-party telemetry or relay services.
-- **Open-source compliance**: this project is for technical exchange, system automation research, and automated testing only. Do not use it in ways that violate the Meta platform ToS or any laws/regulations.
+- All data (accounts, tasks, media) is stored locally in `data/` — nothing is sent to third parties.
+- This project is for technical research and automation. Use it in compliance with muse.ai's Terms of Service.
+- Never commit or share your `.env`, `data/accounts.json`, or admin panel URLs containing your key.
 
 ---
 
-## Community Recognition & Links
+## Language toggle
 
-This project links to and highly endorses the **[LINUX DO community](https://linux.do/)** — thanks for the discussions, feedback, and support:
+Both the admin panel and the Chrome extension support **EN / 中文** toggle (top bar). The preference is saved to `localStorage` and auto-detected from your browser language on first visit.
 
-- [LINUX DO community (https://linux.do/)](https://linux.do/) — an emerging ideal community (sincere, friendly, united, professional; building a community we are proud of)
+---
+
+## HTTP/2 (experimental)
+
+Set `MUSE2API_HTTP2=1` to serve HTTP/1.1 + HTTP/2 (h2c) on the same port. Browsers only use H2 over TLS, so you need a TLS reverse proxy in front for browser-facing H2. API clients that support h2c prior-knowledge benefit from header compression and multiplexing.
 
 ---
 
 ## 👥 Contributors
 
-Thanks to the following developers for code contributions and improvements (in PR merge order):
+Thanks to everyone who contributed (in PR merge order):
 
-- 🌟 **[@cpt-kenvie](https://github.com/cpt-kenvie)** ([PR #2](https://github.com/czg86389-hub/muse2api/pull/2)) — Fixed Docker Compose environment variable resolution so `MUSE2API_KEY` reads from `.env` instead of being overridden by the hardcoded example value.
-- 🌟 **[@CarloCPP](https://github.com/CarloCPP)** ([PR #6](https://github.com/czg86389-hub/muse2api/pull/6)) — Added the Tampermonkey cookie importer userscript and optional keepalive for disabled accounts (`MUSE2API_KEEPALIVE_DISABLED_ACCOUNTS`).
+- 🌟 **[@czg86389-hub](https://github.com/czg86389-hub)** — Original author; all core reverse-engineering and architecture
+- 🌟 **[@cpt-kenvie](https://github.com/cpt-kenvie)** ([PR #2](https://github.com/czg86389-hub/muse2api/pull/2)) — Docker Compose `MUSE2API_KEY` fix
+- 🌟 **[@CarloCPP](https://github.com/CarloCPP)** ([PR #6](https://github.com/czg86389-hub/muse2api/pull/6)) — Tampermonkey userscript + keepalive for disabled accounts
 
-PRs and issues are welcome — let's make this better together!
+PRs and issues are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
+## Community
+
+This project is affiliated with the **[LINUX DO community](https://linux.do/)** — a sincere, friendly, and professional open-source community.
+
+---
 
 ## License
 
 Released under the [MIT License](LICENSE).
-
-
-## Media-selection regression test
-
-Fixes uploaded reference images being mistaken for generated results, and downloads being hijacked by other page media.
-The test uses an isolated temp Chromium profile and a local synthetic DOM — no Muse access, no account reads, no generation quota consumed.
-After installing the project deps and Chromium, run from the repo root:
-
-```bash
-python tests/test_media_selection.py
-```
-
-If the browser is not on PATH, set `MUSE2API_CHROMIUM` to the executable path.
-Covers upload-preview exclusion, result dedup, history-attachment exclusion, exact-source download, video-source pinning,
-no global-download fallback, and abort on reference-image read failure. Final image-edit quality still needs verification against the real API.
-
-
-## v1.5.2: Long image jobs behind reverse proxies/CDNs
-
-The sync OpenAI image endpoints stay compatible, but CDNs/clients may cut long requests off before generation finishes.
-Production clients should use short-submit + polling rather than stretching HTTP timeouts and re-generating:
-
-1. `POST /v1/images/tasks`: same JSON as `/v1/images/generations`; pass image-to-image references via `reference_image`; a stable `Idempotency-Key` header is recommended.
-2. Receive HTTP 202 with an `id`, then call `GET /v1/images/tasks/{id}` every 3s.
-3. On `status=completed` read `url` or `data[0]`; on `status=failed` show `error`. If a status query fails, only retry the query — never re-POST the generation.
-4. Same idempotency key + same input returns the original task; same key + different input returns 409; a full queue returns 429. One process shares one browser and accepts at most 8 unfinished image tasks.
-
-The original `/v1/images/generations` JSON and `/v1/images/edits` JSON/multipart endpoints also accept `async=true` to switch to the same async handling. Default sync behavior is unchanged.
-`timeout` is the queue + generation wait budget (1–600s); browser init and fetch have their own timeouts; clients should keep polling until a terminal task state.
-Task metadata is persisted; image tasks still unfinished at process restart are marked failed, never silently re-generated.
-The admin-page image API test now uses task polling as well.
-
-Regression checks (no real generation quota consumed):
-
-```bash
-python tests/test_async_images.py
-python tests/test_vm_wait.py engine.py --assert
-```
-
-Fixed a race where shared-browser exception handling reset other tasks after unlocking; leftover sidebar text such as
-`Connecting...` / `Still sending` is no longer treated as evidence that the current image failed within 16s.
-
-
-## v1.5.3: Account-status anomalies & self-hosted troubleshooting
-
-Keepalive requests originate from the **deploy server's egress**, not from the browser that exported the cookies. The author's server working proves nothing about another server's network, region, proxy config, or the same account session.
-
-- `/api/session HTTP 401`: upstream rejected auth. First confirm the account can log in at muse.ai, then re-import cookies.
-- `HTTP 403`: access denied — possibly account permissions, server egress, or regional/access restrictions; **not the same as expired cookies**. Inspect the full error and deployment network; do not blindly re-import over and over.
-- `HTTP 429`, `5xx`, timeouts, non-JSON, or no `assigned` in response: this keepalive is unconfirmed — no more false success reports and no overwriting the last confirmed account state; the note shows the diagnosis. A prior `unchecked`/`error` state is never force-flipped to `available`.
-- Browser page-load timeouts are no longer treated as auth failure; only explicit auth failures flag an account as abnormal.
-- `Available` is the last confirmed result and does not guarantee current reachability; `remaining validity` is a cookie-time estimate, not proof of a live server session. Successful checks no longer extend anything by a flat 48h — renewal follows the cookies actually returned.
-
-After updating to v1.5.3 and restarting, click `Test` on each account to re-confirm. Anomalies recorded by older versions are not unconditionally washed clean. Hover the note for the full error; when reporting, include the HTTP status, version, and deployment environment — **never publish cookies, API keys, or keyed admin-page links**.
-
-Bare-metal Git deploy: `git pull --ff-only`, then restart the service; Docker Compose: `git pull --ff-only && docker compose up -d --build`. Save local customizations first, and keep `.env` and `data/`.
-
-Regression test that uses no real accounts and consumes no quota:
-
-```bash
-python tests/test_session_health.py
-```
