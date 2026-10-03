@@ -6,10 +6,10 @@ Thanks for your interest in contributing! This document explains how to get a de
 
 ## Ways to contribute
 
-- **Bug reports** — open a [GitHub Issue](https://github.com/its-benjamin/muse2api/issues) with steps to reproduce, your OS, Python version, and the relevant log lines
-- **Feature requests** — open an issue describing the use case
-- **Bug fixes / improvements** — open a Pull Request (PR)
-- **Documentation** — corrections, translations, and clarifications are always welcome
+- Bug reports: open a [GitHub Issue](https://github.com/its-benjamin/muse2api/issues) with steps to reproduce, your OS, Python version, and the relevant log lines
+- Feature requests: open an issue describing the use case
+- Bug fixes and improvements: open a Pull Request (PR)
+- Documentation: corrections, translations, and clarifications are always welcome
 
 ---
 
@@ -52,7 +52,7 @@ MUSE2API_CHROMIUM=/path/to/chromium python tests/test_media_selection.py
 ## Submitting a PR
 
 1. Fork the repo and create a branch: `git checkout -b fix/your-fix-name`
-2. Make your changes — keep them focused; one logical change per PR
+2. Make your changes; keep them focused, one logical change per PR
 3. Run the tests above and make sure they pass
 4. Commit with a clear message: `fix: describe what changed and why`
 5. Push to your fork and open a PR against `its-benjamin/muse2api:main`
@@ -73,7 +73,7 @@ Types: `fix`, `feat`, `docs`, `refactor`, `test`, `chore`
 
 - Python: follow the existing style (no formatter enforced; just keep it readable)
 - Avoid adding new dependencies unless necessary
-- Keep Chinese comments/strings only where they serve as DOM-matching regex alternatives (e.g. `/发送|send/i`) — these are intentional and must not be removed
+- Keep Chinese comments/strings only where they serve as DOM-matching regex alternatives (e.g. `/发送|send/i`): these are intentional and must not be removed
 
 ---
 

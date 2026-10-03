@@ -10,16 +10,16 @@
 </p>
 
 <p align="center">
-  <b>OpenAI-compatible API for <a href="https://muse.ai/">muse.ai</a> — chat, image generation, video generation, multi-account pool, and automatic session renewal.</b>
+  <b>OpenAI-compatible API for <a href="https://muse.ai/">muse.ai</a>: chat, image generation, video generation, multi-account pool, and automatic session renewal.</b>
 </p>
 
-> **Fork notice:** This is an enhanced fork of [czg86389-hub/muse2api](https://github.com/czg86389-hub/muse2api) with native **Windows support**, bilingual EN/ZH admin UI, hardened anti-bot stealth, speed optimisations, and universal cookie import. All core reverse-engineering credit goes to the original author and the [LINUX DO](https://linux.do/) community.
+> **Fork notice:** This is a fork of [czg86389-hub/muse2api](https://github.com/czg86389-hub/muse2api). The original runs on Linux and Docker. This fork adds native Windows support (auto-detects Chrome/Edge, no WSL needed), a bilingual EN/ZH admin UI, hardened anti-bot stealth, speed improvements, and universal cookie import. All core reverse-engineering credit goes to the original author and the [LINUX DO](https://linux.do/) community.
 
 ---
 
 ## What it does
 
-muse2api wraps [muse.ai](https://muse.ai/)'s web interface as a drop-in OpenAI-compatible REST API. Any client that speaks OpenAI's API (ChatGPT apps, Cursor, Continue, LangChain, curl, …) works out of the box — no code changes needed.
+muse2api wraps [muse.ai](https://muse.ai/)'s web interface as a drop-in OpenAI-compatible REST API. Any client that speaks OpenAI's API (ChatGPT apps, Cursor, Continue, LangChain, curl) works out of the box with no code changes.
 
 | Capability | Endpoint |
 |---|---|
@@ -30,32 +30,21 @@ muse2api wraps [muse.ai](https://muse.ai/)'s web interface as a drop-in OpenAI-c
 | Video status polling | `GET /v1/videos/{task_id}` |
 | Serve generated media | `GET /v1/media/{filename}` |
 
-**Key features:**
+Features:
 
-- **Multi-account pool** — import multiple muse.ai accounts; requests are load-balanced and automatically fail over
-- **Auto session renewal** — background keepalive hits `/api/session` every 15 min to renew cookies before they expire (solves the 48 h Meta cookie limit)
-- **Anti-bot stealth** — two-layer JS injection (puppeteer-extra 16 evasions + dynamic hardware/canvas/audio overrides matched to your real Chrome version)
-- **Windows-native** — auto-detects Chrome/Edge, no WSL needed; `start-windows.bat` double-click launch
-- **Admin web UI** — live account status, quota, one-click keepalive, media library, API testing, online upgrade
+- Multi-account pool: import multiple muse.ai accounts; requests are load-balanced and automatically fail over.
+- Auto session renewal: a background keepalive hits `/api/session` every 15 min to renew cookies before they expire (solves the 48 h Meta cookie limit).
+- Anti-bot stealth: two-layer JS injection (puppeteer-extra 16 evasions + dynamic hardware/canvas/audio overrides matched to your real Chrome version).
+- Windows support: auto-detects Chrome/Edge, no WSL needed; `start-windows.bat` double-click launch.
+- Admin web UI: live account status, quota, one-click keepalive, media library, API testing, online upgrade.
 
 ---
 
 ## Quick start
 
-> **New here?** → Read the full [Installation Guide](INSTALLATION.md) — it covers every platform step by step with screenshots.
+> **New here?** Read the full [Installation Guide](INSTALLATION.md), which covers every platform step by step with screenshots.
 
-### Windows (local, no server needed)
-
-```
-1. Install Python 3.10+ (tick "Add python.exe to PATH")
-2. Install Chrome or Edge (already installed on most Windows machines)
-3. Download this repo → double-click start-windows.bat
-4. Open http://127.0.0.1:18610 in your browser
-5. Import your muse.ai account using the Chrome extension or Tampermonkey script
-6. Start using the API
-```
-
-### Docker (Linux / VPS — recommended for servers)
+### Docker (Linux / VPS)
 
 ```bash
 git clone https://github.com/its-benjamin/muse2api.git
@@ -76,24 +65,35 @@ pip install -r requirements.txt
 python run.py
 ```
 
+### Windows (local, no server needed)
+
+```
+1. Install Python 3.10+ (tick "Add python.exe to PATH")
+2. Install Chrome or Edge (already installed on most Windows machines)
+3. Download this repo -> double-click start-windows.bat
+4. Open http://127.0.0.1:18610 in your browser
+5. Import your muse.ai account using the Chrome extension or Tampermonkey script
+6. Start using the API
+```
+
 ---
 
 ## Import your muse.ai account
 
 You need to give muse2api your muse.ai session cookies. Two ways:
 
-### Option A — Chrome / Edge extension (easiest)
+### Option A: Chrome / Edge extension (easiest)
 
-1. Open `chrome://extensions` → enable **Developer mode**
-2. Click **Load unpacked** → select the `extension/` folder in this repo
+1. Open `chrome://extensions` -> enable Developer mode
+2. Click Load unpacked -> select the `extension/` folder in this repo
 3. Log in to [muse.ai](https://muse.ai/)
-4. Click the extension icon → enter your service URL + `MUSE2API_KEY` → **Read and import**
+4. Click the extension icon -> enter your service URL + `MUSE2API_KEY` -> Read and import
 
-### Option B — Tampermonkey userscript (Firefox / Safari / no dev mode)
+### Option B: Tampermonkey userscript (Firefox / Safari / no dev mode)
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/)
 2. Create a new script, paste `tools/muse2api_cookie_importer.user.js`, save
-3. Open [muse.ai](https://muse.ai/) → click the **⚡ Import to muse2api** button
+3. Open [muse.ai](https://muse.ai/) -> click the "Import to muse2api" button
 
 > See [INSTALLATION.md § Importing your account](INSTALLATION.md#importing-your-muse-ai-account) for screenshots and troubleshooting.
 
@@ -141,15 +141,15 @@ curl -X POST http://localhost:18610/v1/videos \
   -H "Authorization: Bearer m2a_your_key" \
   -H "Content-Type: application/json" \
   -d '{"prompt": "Ocean waves crashing on rocks", "duration": 5, "size": "16:9"}'
-# → {"id": "task_xyz", "status": "queued"}
+# -> {"id": "task_xyz", "status": "queued"}
 
 # Step 2 — poll until done
 curl http://localhost:18610/v1/videos/task_xyz \
   -H "Authorization: Bearer m2a_your_key"
-# → {"status": "succeeded", "result": {"url": "http://localhost:18610/v1/media/vid_xyz.mp4"}}
+# -> {"status": "succeeded", "result": {"url": "http://localhost:18610/v1/media/vid_xyz.mp4"}}
 ```
 
-**Supported model aliases:** `gpt-4o`, `gpt-5`, `claude-sonnet-4`, `deepseek-chat`, `muse-spark`, `muse-image`, and more — they all route to the same Muse backend.
+Supported model aliases: `gpt-4o`, `gpt-5`, `claude-sonnet-4`, `deepseek-chat`, `muse-spark`, `muse-image`, and more. They all route to the same Muse backend.
 
 ---
 
@@ -168,7 +168,7 @@ Copy `.env.example` to `.env` and edit as needed.
 | `MUSE2API_CHAT_TIMEOUT` | `300` | Chat timeout in seconds |
 | `MUSE2API_IMAGE_TIMEOUT` | `240` | Image generation timeout in seconds |
 | `MUSE2API_VIDEO_TIMEOUT` | `600` | Video generation timeout in seconds |
-| `MUSE2API_BROWSER_IDLE_MIN` | `0` | Stop browser after N idle minutes to save ~700 MB RAM; `0` = always warm. Recommended: `10`–`15` on low-RAM machines |
+| `MUSE2API_BROWSER_IDLE_MIN` | `0` | Stop browser after N idle minutes to save ~700 MB RAM; `0` = always warm. Recommended: `10`-`15` on low-RAM machines |
 | `MUSE2API_KEEPALIVE_DISABLED_ACCOUNTS` | `0` | `1` = run keepalive on manually disabled accounts too |
 | `MUSE2API_HTTP2` | `0` | `1` = experimental HTTP/2 via zttp |
 
@@ -197,8 +197,8 @@ location / {
 
 | Symptom | Fix |
 |---|---|
-| `/api/session` returns 401 | Cookies expired — re-import via extension or Tampermonkey |
-| `/api/session` returns 403 | Regional block or account permissions issue — check your VPS egress IP |
+| `/api/session` returns 401 | Cookies expired. Re-import via extension or Tampermonkey |
+| `/api/session` returns 403 | Regional block or account permissions issue. Check your VPS egress IP |
 | Browser won't start on Windows | Do **not** run as Administrator; Chrome exits immediately when elevated |
 | Admin panel unreachable | Check firewall; use `127.0.0.1` in `MUSE2API_HOST` for local-only access |
 | High RAM usage (~700 MB) | Set `MUSE2API_BROWSER_IDLE_MIN=10` to free RAM when idle |
@@ -229,7 +229,7 @@ muse2api/
 ├── .env.example            # All environment variables with comments
 ├── docker-compose.yml      # Docker Compose config
 ├── Dockerfile              # Docker image definition
-├── INSTALLATION.md         # Full setup tutorial ← start here
+├── INSTALLATION.md         # Full setup tutorial <- start here
 └── CONTRIBUTING.md         # How to contribute
 ```
 
@@ -237,7 +237,7 @@ muse2api/
 
 ## Security & privacy
 
-- All data (accounts, tasks, media) is stored locally in `data/` — nothing is sent to third parties.
+- All data (accounts, tasks, media) is stored locally in `data/`. Nothing is sent to third parties.
 - This project is for technical research and automation. Use it in compliance with muse.ai's Terms of Service.
 - Never commit or share your `.env`, `data/accounts.json`, or admin panel URLs containing your key.
 
@@ -245,7 +245,7 @@ muse2api/
 
 ## Language toggle
 
-Both the admin panel and the Chrome extension support **EN / 中文** toggle (top bar). The preference is saved to `localStorage` and auto-detected from your browser language on first visit.
+Both the admin panel and the Chrome extension support EN / Chinese toggle (top bar). The preference is saved to `localStorage` and auto-detected from your browser language on first visit.
 
 ---
 
@@ -255,21 +255,21 @@ Set `MUSE2API_HTTP2=1` to serve HTTP/1.1 + HTTP/2 (h2c) on the same port. Browse
 
 ---
 
-## 👥 Contributors
+## Contributors
 
 Thanks to everyone who contributed (in PR merge order):
 
-- 🌟 **[@czg86389-hub](https://github.com/czg86389-hub)** — Original author; all core reverse-engineering and architecture
-- 🌟 **[@cpt-kenvie](https://github.com/cpt-kenvie)** ([PR #2](https://github.com/czg86389-hub/muse2api/pull/2)) — Docker Compose `MUSE2API_KEY` fix
-- 🌟 **[@CarloCPP](https://github.com/CarloCPP)** ([PR #6](https://github.com/czg86389-hub/muse2api/pull/6)) — Tampermonkey userscript + keepalive for disabled accounts
+- [@czg86389-hub](https://github.com/czg86389-hub): original author, all core reverse-engineering and architecture
+- [@cpt-kenvie](https://github.com/cpt-kenvie) ([PR #2](https://github.com/czg86389-hub/muse2api/pull/2)): Docker Compose `MUSE2API_KEY` fix
+- [@CarloCPP](https://github.com/CarloCPP) ([PR #6](https://github.com/czg86389-hub/muse2api/pull/6)): Tampermonkey userscript + keepalive for disabled accounts
 
-PRs and issues are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
+PRs and issues are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
 ## Community
 
-This project is affiliated with the **[LINUX DO community](https://linux.do/)** — a sincere, friendly, and professional open-source community.
+This project is affiliated with the [LINUX DO community](https://linux.do/), a sincere, friendly, and professional open-source community.
 
 ---
 

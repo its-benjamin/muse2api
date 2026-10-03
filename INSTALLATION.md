@@ -1,6 +1,6 @@
-# Installation Guide
+# Installation guide
 
-This guide covers every step to get muse2api running — from zero to making your first API call.
+This guide covers every step to get muse2api running, from zero to your first API call.
 
 ---
 
@@ -8,13 +8,13 @@ This guide covers every step to get muse2api running — from zero to making you
 
 1. [Prerequisites](#prerequisites)
 2. [Installation](#installation)
-   - [Windows (local)](#option-1-windows-local-no-server-needed)
-   - [Docker / Linux VPS](#option-2-docker-linux-vps-recommended-for-servers)
-   - [Linux bare-metal](#option-3-linux-bare-metal)
+   - [Docker / Linux VPS](#option-1-docker-linux-vps)
+   - [Linux bare-metal](#option-2-linux-bare-metal)
+   - [Windows (local)](#option-3-windows-local)
 3. [Importing your muse.ai account](#importing-your-muse-ai-account)
-   - [Chrome / Edge extension](#option-a--chrome--edge-extension)
-   - [Tampermonkey userscript](#option-b--tampermonkey-userscript)
-   - [Manual cookie paste](#option-c--manual-cookie-paste)
+   - [Chrome / Edge extension](#option-a-chrome--edge-extension)
+   - [Tampermonkey userscript](#option-b-tampermonkey-userscript)
+   - [Manual cookie paste](#option-c-manual-cookie-paste)
 4. [Connecting an API client](#connecting-an-api-client)
    - [OpenAI Python SDK](#openai-python-sdk)
    - [Cursor / Continue / VS Code extensions](#cursor--continue--vs-code-extensions)
@@ -32,76 +32,23 @@ This guide covers every step to get muse2api running — from zero to making you
 
 | Requirement | Windows | Linux / Docker |
 |---|---|---|
-| Python | 3.10+ | 3.10+ (or skip — Docker handles it) |
+| Python | 3.10+ | 3.10+ (Docker handles the install) |
 | Browser | Chrome or Edge (auto-detected) | Chromium (`apt install chromium`) |
 | Internet | Required | Required |
-| muse.ai account | **Required** — free account at [muse.ai](https://muse.ai/) | Same |
+| muse.ai account | Required (free account at [muse.ai](https://muse.ai/)) | Same |
 
-> **Do I need a muse.ai Pro/paid account?**  
+> **Do I need a muse.ai Pro/paid account?**
 > No. A free account works. The API wraps the web interface, so whatever the web UI lets you do, the API exposes.
 
 ---
 
 ## Installation
 
-### Option 1: Windows (local, no server needed)
+### Option 1: Docker / Linux VPS
 
-**Best for:** personal use on your own PC — no server, no Docker, no command line after setup.
+This option suits always-on VPS deployment with no manual Python setup.
 
-**Step 1 — Install Python 3.10+**
-
-1. Go to [python.org/downloads](https://www.python.org/downloads/)
-2. Download the latest Python 3.x installer
-3. Run it and **check "Add python.exe to PATH"** on the first screen
-4. Click Install Now
-
-**Step 2 — Install Chrome or Edge**
-
-Chrome and Edge are auto-detected. If you already have either installed, skip this step.
-
-**Step 3 — Download muse2api**
-
-Option A — with Git:
-```cmd
-git clone https://github.com/its-benjamin/muse2api.git
-```
-
-Option B — without Git:
-- Click the green **Code** button on GitHub → **Download ZIP**
-- Extract the ZIP anywhere (e.g. `C:\muse2api`)
-
-**Step 4 — Launch**
-
-Double-click **`start-windows.bat`** in the extracted folder.
-
-> If Windows Defender SmartScreen warns you, click **More info → Run anyway**. This only appears the first time.
-
-The first launch installs Python packages automatically (takes ~1 minute). You'll see:
-
-```
-muse2api started — http://127.0.0.1:18610
-Admin key: m2a_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-**Step 5 — Open the admin panel**
-
-Open your browser and go to:
-```
-http://127.0.0.1:18610
-```
-
-The key is shown in the console window. Copy it and paste it into the admin panel login field.
-
-**⚠️ Important: Do NOT run as Administrator**  
-muse2api launches Chrome in the background. Chrome exits immediately when launched from an elevated (Administrator) process. If you see Chrome errors, make sure you're running `start-windows.bat` as a normal user.
-
----
-
-### Option 2: Docker / Linux VPS (recommended for servers)
-
-**Best for:** always-on VPS deployment, no manual Python setup.
-
-**Step 1 — Install Docker**
+**Step 1: Install Docker**
 
 ```bash
 curl -fsSL https://get.docker.com | sh
@@ -109,7 +56,7 @@ curl -fsSL https://get.docker.com | sh
 
 Or follow the official guide at [docs.docker.com/get-docker](https://docs.docker.com/get-docker/).
 
-**Step 2 — Clone and configure**
+**Step 2: Clone and configure**
 
 ```bash
 git clone https://github.com/its-benjamin/muse2api.git
@@ -123,13 +70,13 @@ nano .env
 # Set: MUSE2API_KEY=m2a_your_secure_key_here
 ```
 
-**Step 3 — Start**
+**Step 3: Start**
 
 ```bash
 docker compose up -d
 ```
 
-**Step 4 — Open the admin panel**
+**Step 4: Open the admin panel**
 
 ```
 http://<YOUR_SERVER_IP>:18610
@@ -140,31 +87,31 @@ Check the logs if you need the auto-generated key:
 docker compose logs muse2api | grep "Admin key"
 ```
 
-**Step 5 — (Optional) Nginx reverse proxy**
+**Step 5: (Optional) Nginx reverse proxy**
 
-See [Nginx reverse proxy](#nginx-reverse-proxy) below — required if you want HTTPS or a custom domain.
+See [Nginx reverse proxy](#nginx-reverse-proxy) below if you want HTTPS or a custom domain.
 
 ---
 
-### Option 3: Linux bare-metal
+### Option 2: Linux bare-metal
 
-**Best for:** VPS without Docker, or custom deployments.
+Use this for a VPS without Docker, or for custom deployments.
 
-**Step 1 — Install system dependencies**
+**Step 1: Install system dependencies**
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y chromium python3 python3-pip python3-venv git
 ```
 
-**Step 2 — Clone the repo**
+**Step 2: Clone the repo**
 
 ```bash
 git clone https://github.com/its-benjamin/muse2api.git
 cd muse2api
 ```
 
-**Step 3 — Set up Python environment**
+**Step 3: Set up Python environment**
 
 ```bash
 python3 -m venv venv
@@ -172,14 +119,14 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-**Step 4 — Configure**
+**Step 4: Configure**
 
 ```bash
 cp .env.example .env
 nano .env   # set MUSE2API_KEY and other options
 ```
 
-**Step 5 — Run as a systemd service (auto-start on reboot)**
+**Step 5: Run as a systemd service (auto-start on reboot)**
 
 ```bash
 sudo cp deploy/muse2api.service /etc/systemd/system/
@@ -195,7 +142,7 @@ sudo systemctl status muse2api
 journalctl -u muse2api -f
 ```
 
-Or run manually (for testing):
+Or run manually for testing:
 ```bash
 source venv/bin/activate
 python run.py
@@ -203,15 +150,69 @@ python run.py
 
 ---
 
+### Option 3: Windows (local)
+
+Use this for personal use on your own PC: no server, no Docker, no command line after setup.
+
+**Step 1: Install Python 3.10+**
+
+1. Go to [python.org/downloads](https://www.python.org/downloads/)
+2. Download the latest Python 3.x installer
+3. Run it and check "Add python.exe to PATH" on the first screen
+4. Click Install Now
+
+**Step 2: Install Chrome or Edge**
+
+Chrome and Edge are auto-detected. If you already have either installed, skip this step.
+
+**Step 3: Download muse2api**
+
+Option A, with Git:
+```cmd
+git clone https://github.com/its-benjamin/muse2api.git
+```
+
+Option B, without Git:
+- Click the green **Code** button on GitHub, then **Download ZIP**
+- Extract the ZIP anywhere (e.g. `C:\muse2api`)
+
+**Step 4: Launch**
+
+Double-click `start-windows.bat` in the extracted folder.
+
+> If Windows Defender SmartScreen warns you, click **More info**, then **Run anyway**. This only appears the first time.
+
+The first launch installs Python packages automatically (takes ~1 minute). You'll see:
+
+```
+muse2api started — http://127.0.0.1:18610
+Admin key: m2a_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+**Step 5: Open the admin panel**
+
+Open your browser and go to:
+```
+http://127.0.0.1:18610
+```
+
+The key is shown in the console window. Copy it and paste it into the admin panel login field.
+
+**Important: Do not run as Administrator**
+
+muse2api launches Chrome in the background. Chrome exits immediately when launched from an elevated process. If you see Chrome errors, run `start-windows.bat` as a normal user.
+
+---
+
 ## Importing your muse.ai account
 
 muse2api needs your muse.ai session cookies to act on your behalf. You get these from your browser after logging in. There are three ways:
 
-### Option A — Chrome / Edge extension
+### Option A: Chrome / Edge extension
 
-This is the easiest method. The extension reads your cookies automatically — no F12, no manual copy-paste.
+This is the easiest method. The extension reads your cookies automatically, no F12 or manual copy-paste needed.
 
-**Step 1 — Load the extension**
+**Step 1: Load the extension**
 
 1. Open Chrome or Edge
 2. Go to `chrome://extensions`
@@ -219,39 +220,39 @@ This is the easiest method. The extension reads your cookies automatically — n
 4. Click **Load unpacked**
 5. Select the `extension` folder inside the muse2api directory
 
-**Step 2 — Log in to muse.ai**
+**Step 2: Log in to muse.ai**
 
 Open [muse.ai](https://muse.ai/) and log in until you see the main chat interface.
 
-**Step 3 — Import**
+**Step 3: Import**
 
 1. Click the muse2api extension icon in your browser toolbar
 2. Fill in:
-   - **Service URL**: `http://127.0.0.1:18610` (or your server IP)
-   - **API Key**: your `MUSE2API_KEY` from the console
+   - Service URL: `http://127.0.0.1:18610` (or your server IP)
+   - API Key: your `MUSE2API_KEY` from the console
 3. Click **Read and import**
 
 You should see a success message. The account now appears in the admin panel.
 
 ---
 
-### Option B — Tampermonkey userscript
+### Option B: Tampermonkey userscript
 
 Use this if you prefer Firefox, Safari, or don't want to enable Developer mode.
 
-**Step 1 — Install Tampermonkey**
+**Step 1: Install Tampermonkey**
 
 - [Chrome/Edge](https://www.tampermonkey.net/)
 - [Firefox](https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/)
 
-**Step 2 — Create the userscript**
+**Step 2: Create the userscript**
 
-1. Click the Tampermonkey icon → **Create a new script**
+1. Click the Tampermonkey icon, then **Create a new script**
 2. Delete the default template
 3. Paste the entire contents of `tools/muse2api_cookie_importer.user.js`
 4. Press `Ctrl+S` to save
 
-**Step 3 — Import**
+**Step 3: Import**
 
 1. Open [muse.ai](https://muse.ai/) and log in
 2. A floating **⚡ Import to muse2api** button appears at the bottom-right
@@ -260,17 +261,17 @@ Use this if you prefer Firefox, Safari, or don't want to enable Developer mode.
 
 ---
 
-### Option C — Manual cookie paste
+### Option C: Manual cookie paste
 
 If neither extension works, you can paste cookies manually from your browser's DevTools.
 
-**Step 1 — Open DevTools on muse.ai**
+**Step 1: Open DevTools on muse.ai**
 
 1. Open [muse.ai](https://muse.ai/) and log in
 2. Press `F12` to open DevTools
-3. Go to **Application** tab → **Cookies** → `https://muse.ai`
+3. Go to the **Application** tab, then **Cookies**, then `https://muse.ai`
 
-**Step 2 — Copy the key cookies**
+**Step 2: Copy the key cookies**
 
 You need at least: `hatch_sess`, `hatch_gw`, `hatch_vml`, `hatch_native_auth_device`
 
@@ -280,9 +281,9 @@ Copy the whole cookie string from the Network tab:
 3. Find the `Cookie:` request header
 4. Copy the entire value
 
-**Step 3 — Import via admin panel**
+**Step 3: Import via admin panel**
 
-1. Open the admin panel → **Accounts** → **Add account**
+1. Open the admin panel, then **Accounts**, then **Add account**
 2. Paste the cookie string into the input field
 3. Click **Import**
 
@@ -327,10 +328,10 @@ In the settings for your AI extension:
 |---|---|
 | API Base URL / Endpoint | `http://127.0.0.1:18610/v1` |
 | API Key | your `MUSE2API_KEY` |
-| Model | `muse-spark` (or `gpt-4o`, `gpt-4`, etc. — all route to Muse) |
+| Model | `muse-spark` (or `gpt-4o`, `gpt-4`, etc.; all route to Muse) |
 
 **Cursor:**
-- Settings → Models → Add model → Custom
+- Settings, then Models, then Add model, then Custom
 - Base URL: `http://127.0.0.1:18610/v1`
 - API Key: your key
 
@@ -354,10 +355,10 @@ Edit `~/.continue/config.json`:
 ### SillyTavern / other chat UIs
 
 In SillyTavern:
-1. **API**: OpenAI
-2. **API URL**: `http://127.0.0.1:18610/v1`
-3. **API Key**: your `MUSE2API_KEY`
-4. **Model**: `muse-spark`
+1. API: OpenAI
+2. API URL: `http://127.0.0.1:18610/v1`
+3. API Key: your `MUSE2API_KEY`
+4. Model: `muse-spark`
 
 ### curl
 
@@ -402,7 +403,7 @@ MUSE2API_KEEPALIVE_DISABLED_ACCOUNTS=0  # 1 = also keepalive disabled accounts
 
 ## Nginx reverse proxy
 
-If you're serving muse2api on a VPS behind Nginx (with HTTPS):
+If you're serving muse2api on a VPS behind Nginx with HTTPS:
 
 ```nginx
 server {
@@ -426,10 +427,7 @@ server {
 }
 ```
 
-Key points:
-- `proxy_read_timeout 600s` — prevents 502 on long video/image generation jobs
-- `proxy_buffering off` — required for SSE streaming to work correctly
-- `client_max_body_size 64M` — allows large reference image uploads
+`proxy_read_timeout 600s` prevents 502 errors on long video/image generation jobs. `proxy_buffering off` is required for SSE streaming. `client_max_body_size 64M` allows large reference image uploads.
 
 ---
 
@@ -438,21 +436,21 @@ Key points:
 ### "No accounts available" error from the API
 
 You haven't imported a muse.ai account yet, or all accounts are flagged as unavailable.
-→ Open the admin panel → Accounts → Import an account, or click **Test** on existing accounts.
+Open the admin panel, go to Accounts, and import an account, or click **Test** on existing accounts.
 
 ### 401 from `/api/session`
 
 Your cookies expired. muse.ai session cookies last ~48 hours.
-→ Log into muse.ai again and re-import via the Chrome extension or Tampermonkey.
+Log into muse.ai again and re-import via the Chrome extension or Tampermonkey.
 
 ### 403 from `/api/session`
 
-Access denied — usually a regional restriction on your VPS's IP, or an account permissions issue.
-→ Try a different VPS region or a residential proxy. Re-importing the same cookies won't help.
+Access denied, usually a regional restriction on your VPS's IP or an account permissions issue.
+Try a different VPS region or a residential proxy. Re-importing the same cookies won't help.
 
 ### Chrome won't launch on Windows
 
-- Make sure you're **not running as Administrator**
+- Make sure you're not running as Administrator
 - Check that Chrome or Edge is installed
 - Try setting `MUSE2API_CHROMIUM` to the full path, e.g. `C:\Program Files\Google\Chrome\Application\chrome.exe`
 
@@ -462,7 +460,7 @@ Chrome uses ~700 MB RSS. To free it when idle:
 ```env
 MUSE2API_BROWSER_IDLE_MIN=10
 ```
-The browser stops after 10 minutes of inactivity. The next request restarts it (~5–10 s cold start).
+The browser stops after 10 minutes of inactivity. The next request restarts it (~5-10 s cold start).
 
 ### Admin panel shows "update available" banner
 
@@ -480,14 +478,11 @@ git pull --ff-only && docker compose up -d --build
 ### "Still sending" / VM connection timeout
 
 The muse.ai cloud VM that runs your account's browser session was suspended.
-→ The service wakes it automatically. If this keeps happening, check that keepalive is running (admin panel → health).
+The service wakes it automatically. If this keeps happening, check that keepalive is running (admin panel, then health).
 
 ---
 
 ## Updating
-
-**Windows (start-windows.bat):**
-Pull the latest code (or download the new ZIP) and restart `start-windows.bat`. Your `.env` and `data/` are not touched.
 
 **Docker:**
 ```bash
@@ -503,11 +498,12 @@ pip install -r requirements.txt
 sudo systemctl restart muse2api
 ```
 
+**Windows (`start-windows.bat`):**
+Pull the latest code (or download the new ZIP) and restart `start-windows.bat`. Your `.env` and `data/` are not touched.
+
 ---
 
 ## Uninstalling
-
-**Windows:** delete the muse2api folder. Chrome profile is in `muse2api-profiles/` next to the folder — delete that too.
 
 **Docker:**
 ```bash
@@ -520,3 +516,5 @@ sudo systemctl disable --now muse2api
 sudo rm /etc/systemd/system/muse2api.service
 rm -rf /opt/muse2api
 ```
+
+**Windows:** Delete the muse2api folder. The Chrome profile is in `muse2api-profiles/` next to the folder; delete that too.
