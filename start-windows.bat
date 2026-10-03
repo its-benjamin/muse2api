@@ -37,9 +37,19 @@ if errorlevel 1 (
 if "%MUSE2API_HOST%"=="" set MUSE2API_HOST=127.0.0.1
 if "%MUSE2API_PORT%"=="" set MUSE2API_PORT=18610
 
+rem Read MUSE2API_KEY from .env so the admin URL is correct
+set MUSE2API_KEY=
+for /f "usebackq tokens=1,* delims==" %%A in (".env") do (
+  if /i "%%A"=="MUSE2API_KEY" set MUSE2API_KEY=%%B
+)
+
 echo.
 echo [INFO] Starting muse2api at http://%MUSE2API_HOST%:%MUSE2API_PORT% ...
-echo [INFO] Admin panel: http://%MUSE2API_HOST%:%MUSE2API_PORT%/?key=YOUR_KEY  (first-run key is printed below as "m2a_...")
+if "%MUSE2API_KEY%"=="" (
+  echo [INFO] Admin panel: http://%MUSE2API_HOST%:%MUSE2API_PORT%/  ^(key will be auto-generated and printed below as "m2a_..."^)
+) else (
+  echo [INFO] Admin panel: http://%MUSE2API_HOST%:%MUSE2API_PORT%/?key=%MUSE2API_KEY%
+)
 echo [INFO] Chrome / Edge on this PC is auto-detected; MUSE2API_CHROMIUM in .env can stay empty.
 echo [INFO] Keep this window open. Press Ctrl+C to stop.
 echo.

@@ -36,9 +36,21 @@ if ($LASTEXITCODE -ne 0) {
 if (-not $env:MUSE2API_HOST) { $env:MUSE2API_HOST = '127.0.0.1' }
 if (-not $env:MUSE2API_PORT) { $env:MUSE2API_PORT = '18610' }
 
+# Read MUSE2API_KEY from .env so the admin URL is correct
+$envKey = ''
+if (Test-Path '.env') {
+  foreach ($line in Get-Content '.env') {
+    if ($line -match '^MUSE2API_KEY\s*=\s*(.+)$') { $envKey = $Matches[1].Trim(); break }
+  }
+}
+
 Write-Host ''
 Write-Host "[INFO] Starting muse2api at http://$($env:MUSE2API_HOST):$($env:MUSE2API_PORT) ..."
-Write-Host '[INFO] Admin panel: http://127.0.0.1:18610/?key=YOUR_KEY  (first-run key prints below as "m2a_...")'
+if ($envKey) {
+  Write-Host "[INFO] Admin panel: http://$($env:MUSE2API_HOST):$($env:MUSE2API_PORT)/?key=$envKey"
+} else {
+  Write-Host "[INFO] Admin panel: http://$($env:MUSE2API_HOST):$($env:MUSE2API_PORT)/  (key will be auto-generated and printed below as 'm2a_...')"
+}
 Write-Host '[INFO] Chrome / Edge on this PC is auto-detected; MUSE2API_CHROMIUM in .env can stay empty.'
 Write-Host '[INFO] Keep this window open. Press Ctrl+C to stop.'
 Write-Host ''
