@@ -1545,7 +1545,9 @@ function renderDynamic(){
 }
 applyI18n();
 const KEY_STORE = 'muse2api_key';
-let KEY = localStorage.getItem(KEY_STORE) || new URLSearchParams(location.search).get('key') || '';
+const _urlKey = new URLSearchParams(location.search).get('key') || '';
+let KEY = _urlKey || localStorage.getItem(KEY_STORE) || '';
+if (_urlKey) localStorage.setItem(KEY_STORE, _urlKey);  // keep localStorage in sync
 $('key').value = KEY;
 if ($('dBase')) $('dBase').textContent = location.origin + '/v1';
 
