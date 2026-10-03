@@ -667,8 +667,8 @@ class MuseEngine:
                     if (!document.querySelector('textarea')) return 'no-ta';
                     var h = document.querySelector('[data-hatch-shell-hydration-state]');
                     if (h && h.getAttribute('data-hatch-shell-hydration-state') !== 'hydrated') return 'hydrating';
-                    var b = document.body ? (document.body.innerText || '') : '';
-                    if (b.indexOf('Connecting...') !== -1) return 'connecting';
+                    var statusEl = document.querySelector('[class*="text-body-status"]');
+                    if (statusEl && statusEl.innerText.indexOf('Connecting...') !== -1) return 'connecting';
                     return 'ready';
                 })()""")
                 if st == "ready":
@@ -684,23 +684,52 @@ class MuseEngine:
         if not self.page:
             return
         try:
-            needs_nav = self.page.js("""(function(forChat){
+            # 1. Close leftover dialogs
+            self.page.js("""(function(){
                 var d = document.querySelector('[role="dialog"]');
                 if (d) {
                     var b = d.querySelector('button[aria-label*="close" i], button');
                     if (b) b.click();
                 }
+            })()""")
+
+            # 2. Check current thread state
+            state = self.page.js("""(function(forChat){
                 var scope = document.querySelector('main,[class*="chat-scroll"],[class*="hatch-chat-scroll"]') || document.body;
                 var bubbleCount = scope ? scope.querySelectorAll('div[class*="hatch-chat-groupable-bubble"]').length : 0;
                 var hasAtts = document.querySelectorAll('[data-testid^="hatch-chat-attachment-presentation-"]').length > 0;
-                var hasStop = !!document.querySelector('button[aria-label*="Stop" i]');
+                var hasStop = !!document.querySelector('button[aria-label="Stop generating" i], button[aria-label="Stop response" i], [class*="composer"] button[aria-label*="Stop" i], form button[aria-label*="Stop" i]');
+                var statusEl = document.querySelector('[class*="text-body-status"]');
+                var isConnecting = statusEl && statusEl.innerText.indexOf('Connecting...') !== -1;
                 var bodyTxt = document.body ? (document.body.innerText || '') : '';
-                var hasStuck = bodyTxt.indexOf('Still sending') !== -1 || bodyTxt.indexOf('Connecting...') !== -1;
-                if (hasStop || hasStuck || hasAtts) return true;
-                if (forChat) {
-                    return bubbleCount >= 24;
+                var hasStuck = bodyTxt.indexOf('Still sending') !== -1 || isConnecting;
+
+                // If clean with zero bubbles and ready textarea, no reset needed
+                if (bubbleCount === 0 && !hasAtts && !hasStop && !hasStuck && !!document.querySelector('textarea')) {
+                    return 'clean';
+                }
+
+                // Fast path for new chats: click in-page compose button (<40ms, zero navigation latency)
+                var composeBtn = document.querySelector('[data-testid="hatch-chat-compose"]')
+                    || document.querySelector('[aria-label="New side chat"]')
+                    || document.querySelector('[aria-label="New chat"]');
+                if (composeBtn && !hasStuck && !hasAtts) {
+                    composeBtn.click();
+                    return 'clicked-compose';
+                }
+                return 'needs-nav';
             })(%s)""" % ("true" if for_chat else "false"))
-            if needs_nav:
+
+            if state == "clicked-compose":
+                t_end = time.time() + 0.8
+                while time.time() < t_end:
+                    time.sleep(0.03)
+                    cnt = self.page.js("document.querySelectorAll('div[class*=\"hatch-chat-groupable-bubble\"]').length") or 0
+                    if cnt == 0 and self.page.js("!!document.querySelector('textarea')"):
+                        return
+                state = "needs-nav"
+
+            if state == "needs-nav":
                 self.page.send("Page.navigate", {"url": "https://muse.ai/thread/new"})
                 t_end = time.time() + 10.0
                 while time.time() < t_end:
@@ -1223,7 +1252,7 @@ class MuseEngine:
         ".filter(function(b){return /hatch-agent-bubble-bg/.test(b.className||'');});"
         "var nonEmpty=bs.filter(function(b){return ((b.innerText||'').trim().length)>0;});"
         "var txt=nonEmpty.length?(nonEmpty[nonEmpty.length-1].innerText||'').trim():'';"
-        "var stop=!!document.querySelector('button[aria-label*=\"Stop\" i]');"
+        "var stop=!!document.querySelector('button[aria-label=\"Stop generating\" i], button[aria-label=\"Stop response\" i], [class*=\"composer\"] button[aria-label*=\"Stop\" i], form button[aria-label*=\"Stop\" i], button[data-testid*=\"stop\" i]');"
         "return JSON.stringify({cnt:nonEmpty.length,total:bs.length,txt:txt,stop:stop});})()"
     )
 
