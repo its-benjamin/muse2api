@@ -291,8 +291,46 @@ Copy the whole cookie string from the Network tab:
 
 ## Connecting an API client
 
-Once you have an account imported, you can use any OpenAI-compatible client.
+Once you have an account imported, you can use any OpenAI- or Anthropic-compatible client.
 
+### Claude Code & Claude Agent SDK
+
+Point Claude Code at muse2api:
+
+```bash
+export ANTHROPIC_BASE_URL="http://127.0.0.1:18610"
+export ANTHROPIC_API_KEY="m2a_your_key_here"
+claude
+```
+
+### Anthropic Python SDK
+
+```python
+import anthropic
+
+client = anthropic.Anthropic(
+    base_url="http://127.0.0.1:18610",
+    api_key="m2a_your_key_here",
+)
+
+message = client.messages.create(
+    model="claude-3-5-sonnet",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Hello!"}],
+)
+print(message.content[0].text)
+```
+
+For streaming:
+```python
+with client.messages.stream(
+    model="claude-3-5-sonnet",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Tell me a story"}],
+) as stream:
+    for text in stream.text_stream:
+        print(text, end="", flush=True)
+```
 ### OpenAI Python SDK
 
 ```python

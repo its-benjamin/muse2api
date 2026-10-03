@@ -98,7 +98,20 @@ def _err_type(status: int) -> str:
 
 @app.exception_handler(HTTPException)
 async def _http_exc(request: Request, exc: HTTPException):
-    if request.url.path.startswith("/v1/"):
+    path = request.url.path
+    if path.startswith("/v1/messages") or path.startswith("/messages"):
+        err_type = (
+            "authentication_error" if exc.status_code == 401
+            else "not_found_error" if exc.status_code == 404
+            else "invalid_request_error" if exc.status_code == 400
+            else "api_error"
+        )
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"type": "error", "error": {"type": err_type, "message": str(exc.detail)}},
+            headers=getattr(exc, "headers", None),
+        )
+    if path.startswith("/v1/"):
         return JSONResponse(
             status_code=exc.status_code,
             content={"error": {"message": str(exc.detail),
@@ -112,19 +125,38 @@ async def _http_exc(request: Request, exc: HTTPException):
 
 @app.exception_handler(RequestValidationError)
 async def _validation_exc(request: Request, exc: RequestValidationError):
-    if request.url.path.startswith("/v1/"):
+    path = request.url.path
+    if path.startswith("/v1/messages") or path.startswith("/messages"):
+        return JSONResponse(
+            status_code=400,
+            content={"type": "error", "error": {
+                "type": "invalid_request_error",
+                "message": "Request validation failed: " + str(exc.errors())[:400]
+            }},
+        )
+    if path.startswith("/v1/"):
         return JSONResponse(status_code=422, content={"error": {
             "message": "Request validation failed: " + str(exc.errors())[:400],
             "type": "invalid_request_error", "param": None, "code": 422}})
     return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 MODELS = [
-    {"id": "muse-spark", "object": "model", "owned_by": "muse",
+    {"id": "muse-spark", "object": "model", "type": "model", "display_name": "Muse Spark", "owned_by": "muse",
      "description": "Muse Spark -- text/code chat (free web quota, streaming supported)"},
-    {"id": "muse-image", "object": "model", "owned_by": "muse",
+    {"id": "muse-image", "object": "model", "type": "model", "display_name": "Muse Image", "owned_by": "muse",
      "description": "Muse Image -- text-to-image / image editing (free web quota)"},
-    {"id": "muse-video", "object": "model", "owned_by": "muse",
+    {"id": "muse-video", "object": "model", "type": "model", "display_name": "Muse Video", "owned_by": "muse",
      "description": "Muse Video -- text-to-video / image-to-video (free web quota)"},
+    {"id": "claude-3-7-sonnet", "object": "model", "type": "model", "display_name": "Claude 3.7 Sonnet", "owned_by": "anthropic",
+     "description": "Claude 3.7 Sonnet (mapped to Muse Spark)"},
+    {"id": "claude-3-5-sonnet", "object": "model", "type": "model", "display_name": "Claude 3.5 Sonnet", "owned_by": "anthropic",
+     "description": "Claude 3.5 Sonnet (mapped to Muse Spark)"},
+    {"id": "claude-3-5-sonnet-20241022", "object": "model", "type": "model", "display_name": "Claude 3.5 Sonnet v2", "owned_by": "anthropic",
+     "description": "Claude 3.5 Sonnet v2 (mapped to Muse Spark)"},
+    {"id": "claude-3-5-haiku", "object": "model", "type": "model", "display_name": "Claude 3.5 Haiku", "owned_by": "anthropic",
+     "description": "Claude 3.5 Haiku (mapped to Muse Spark)"},
+    {"id": "claude-3-opus", "object": "model", "type": "model", "display_name": "Claude 3 Opus", "owned_by": "anthropic",
+     "description": "Claude 3 Opus (mapped to Muse Spark)"},
 ]
 
 # Downstream clients (Codex / Cline / others) pass OpenAI- or Anthropic-style model names,
@@ -144,9 +176,12 @@ MODEL_ALIASES = {
     "o3-mini": "muse-spark", "o4-mini": "muse-spark",
     "codex": "muse-spark", "codex-mini-latest": "muse-spark",
     "claude-3-5-sonnet": "muse-spark", "claude-3-5-sonnet-latest": "muse-spark",
+    "claude-3-5-sonnet-20241022": "muse-spark", "claude-3-5-sonnet-20240620": "muse-spark",
     "claude-3-7-sonnet": "muse-spark", "claude-sonnet-4": "muse-spark",
-    "claude-opus-4": "muse-spark", "claude-3-opus": "muse-spark",
-    "claude-3-haiku": "muse-spark",
+    "claude-opus-4": "muse-spark", "claude-3-opus": "muse-spark", "claude-3-opus-20240229": "muse-spark",
+    "claude-3-haiku": "muse-spark", "claude-3-haiku-20240307": "muse-spark",
+    "claude-3-5-haiku": "muse-spark", "claude-3-5-haiku-20241022": "muse-spark",
+    "claude-instant-1.2": "muse-spark", "claude-2.1": "muse-spark", "claude-2.0": "muse-spark",
     "deepseek-chat": "muse-spark", "deepseek-coder": "muse-spark",
     "deepseek-reasoner": "muse-spark", "qwen-coder": "muse-spark",
     "gemini-2.5-pro": "muse-spark", "gemini-2.5-flash": "muse-spark",
@@ -166,15 +201,23 @@ def resolve_model(name: str | None, default: str = "muse-image") -> str:
 
 
 # ------------------------- Auth -------------------------
-def auth(authorization: str | None = Header(default=None)):
+def auth(
+    authorization: str | None = Header(default=None),
+    x_api_key: str | None = Header(default=None, alias="x-api-key"),
+):
     if not CFG.api_key:
         return True
-    if not authorization or not authorization.lower().startswith("bearer "):
-        raise HTTPException(401, "Missing Authorization: Bearer <key>")
-    parts = authorization.split(None, 1)
-    token = parts[1].strip() if len(parts) > 1 else ""
+    token = ""
+    if x_api_key:
+        token = x_api_key.strip()
+    elif authorization:
+        if authorization.lower().startswith("bearer "):
+            parts = authorization.split(None, 1)
+            token = parts[1].strip() if len(parts) > 1 else ""
+        else:
+            token = authorization.strip()
     if not token or token != CFG.api_key:
-        raise HTTPException(401, "Invalid API key")
+        raise HTTPException(401, "Missing or invalid API key (pass Bearer token or x-api-key header)")
     return True
 
 
@@ -364,6 +407,24 @@ class ResponsesRequest(BaseModel):
     store: bool | None = None
 
 
+class AnthropicMessagesRequest(BaseModel):
+    """Anthropic Messages API request (POST /v1/messages).
+    Compatible with Claude Code, Claude Agent SDK, and official Anthropic SDKs."""
+    model: str = "claude-3-5-sonnet"
+    messages: list[ChatMessage] = []
+    system: str | list | None = None
+    max_tokens: int | None = 4096
+    metadata: dict | None = None
+    stop_sequences: list[str] | None = None
+    stream: bool = False
+    temperature: float | None = None
+    top_p: float | None = None
+    top_k: int | None = None
+    tools: list | None = None
+    tool_choice: object | None = None
+    timeout: int | None = None
+    thinking: object | None = None
+
 class AccountRequest(BaseModel):
     label: str = ""
     cookies: dict[str, str] = Field(default_factory=dict)
@@ -468,6 +529,55 @@ def build_chat_prompt(messages: list[ChatMessage]) -> str:
         sys_text = "\n\n".join(system)
         sys_text = sys_text.replace("danger-full-access", "standard-workspace-access")
         parts.append(f"Background and task setup:\n{sys_text}")
+    for role, text in turns:
+        label = "assistant" if role == "assistant" else "user"
+        parts.append(f"{label}:\n{text}")
+    return "\n\n".join(parts)
+
+def _anthropic_content_text(content) -> str:
+    """Normalize Anthropic content into plain text (supports blocks and string form)."""
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict):
+                b_type = block.get("type")
+                if b_type in (None, "text", "input_text", "output_text"):
+                    parts.append(str(block.get("text") or ""))
+                elif b_type == "tool_use":
+                    tool_name = block.get("name") or "tool"
+                    tool_input = json.dumps(block.get("input") or {}, ensure_ascii=False)
+                    parts.append(f"[Tool Call: {tool_name}({tool_input})]")
+                elif b_type == "tool_result":
+                    res_content = _anthropic_content_text(block.get("content"))
+                    parts.append(f"[Tool Result]\n{res_content}")
+                elif b_type == "image":
+                    parts.append("[image]")
+        return "\n".join(p for p in parts if p)
+    return str(content)
+
+
+def build_anthropic_prompt(req: AnthropicMessagesRequest) -> str:
+    """Join Anthropic messages and system prompt into one coherent prompt for muse.ai."""
+    system_text = _anthropic_content_text(req.system).strip()
+    turns = []
+    for m in req.messages:
+        role = (m.role or "").strip().lower()
+        text = _anthropic_content_text(m.content).strip()
+        if text:
+            turns.append((role, text))
+
+    if len(turns) == 1 and not system_text and turns[0][0] == "user":
+        return turns[0][1]
+
+    parts = []
+    if system_text:
+        parts.append(f"Background and task setup:\n{system_text}")
     for role, text in turns:
         label = "assistant" if role == "assistant" else "user"
         parts.append(f"{label}:\n{text}")
@@ -956,8 +1066,13 @@ def readyz():
 
 @app.get("/v1/models")
 def models(_=Depends(auth)):
-    return {"object": "list", "data": MODELS}
-
+    return {
+        "object": "list",
+        "data": MODELS,
+        "has_more": False,
+        "first_id": MODELS[0]["id"] if MODELS else None,
+        "last_id": MODELS[-1]["id"] if MODELS else None,
+    }
 
 # ------------------------- Image generation -------------------------
 def _image_response(req: ImageRequest, res: dict) -> dict:
@@ -1530,6 +1645,159 @@ async def responses_api(req: ResponsesRequest, _=Depends(auth)):
 
     return envelope("completed", text)
 
+# ------------------------- Anthropic Messages API (Claude Code & Agent SDK compatible) -------------------------
+_ANTHROPIC_SSE_HEADERS = {
+    "Cache-Control": "no-cache, no-transform",
+    "Connection": "keep-alive",
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "X-Accel-Buffering": "no",
+}
+
+
+def _anthropic_sse(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@app.head("/api/hello")
+@app.get("/api/hello")
+def api_hello():
+    """Connection-warming probe from Claude Code."""
+    return Response(status_code=200)
+
+
+@app.post("/v1/messages/count_tokens")
+@app.post("/messages/count_tokens")
+def count_tokens(req: AnthropicMessagesRequest, _=Depends(auth)):
+    """Token counting endpoint for Claude Code and Anthropic clients."""
+    prompt = build_anthropic_prompt(req)
+    input_tokens = max(1, len(prompt) // 4)
+    return {"input_tokens": input_tokens}
+
+
+@app.post("/v1/messages")
+@app.post("/messages")
+@app.post("/v1/v1/messages")
+async def anthropic_messages(req: AnthropicMessagesRequest, _=Depends(auth)):
+    """Anthropic Messages API endpoint.
+    Fully compatible with Claude Code, Claude Agent SDK, Anthropic Python/TypeScript SDKs,
+    Cursor, Continue, Cline, and any Anthropic-compatible tool."""
+    prompt = build_anthropic_prompt(req)
+    if not prompt:
+        raise HTTPException(400, "messages is empty")
+
+    tool_note = build_tools_prompt(req.tools) if CFG.tool_protocol and req.tools else ""
+    if tool_note:
+        prompt = prompt + "\n\n" + tool_note
+
+    model = resolve_model(req.model, default="muse-spark")
+    timeout = int(req.timeout or CFG.chat_timeout)
+    acc = store.pick_account(rotate=True, preferred_id=getattr(engine, "current_acc_id", None))
+    if not acc:
+        raise HTTPException(400, "No available accounts; import cookies on the admin page first")
+
+    acc_id = acc["id"]
+    cookies = acc["cookies"]
+    expires = acc.get("cookies_exp")
+    msg_id = "msg_" + uuid.uuid4().hex[:24]
+    input_tokens = max(1, len(prompt) // 4)
+
+    if req.stream:
+        def sync_anthropic_stream():
+            try:
+                # 1. message_start
+                yield _anthropic_sse("message_start", {
+                    "type": "message_start",
+                    "message": {
+                        "id": msg_id,
+                        "type": "message",
+                        "role": "assistant",
+                        "model": req.model,
+                        "content": [],
+                        "stop_reason": None,
+                        "stop_sequence": None,
+                        "usage": {"input_tokens": input_tokens, "output_tokens": 1}
+                    }
+                })
+
+                # 2. content_block_start
+                yield _anthropic_sse("content_block_start", {
+                    "type": "content_block_start",
+                    "index": 0,
+                    "content_block": {"type": "text", "text": ""}
+                })
+
+                # 3. Stream incremental deltas
+                output_chars = 0
+                stream_gen = safe_chat_stream(cookies, prompt, expires, timeout, account_id=acc_id)
+                for chunk in stream_gen:
+                    for piece in _pace_text(chunk):
+                        output_chars += len(piece)
+                        yield _anthropic_sse("content_block_delta", {
+                            "type": "content_block_delta",
+                            "index": 0,
+                            "delta": {"type": "text_delta", "text": piece}
+                        })
+
+                # 4. content_block_stop
+                yield _anthropic_sse("content_block_stop", {
+                    "type": "content_block_stop",
+                    "index": 0
+                })
+
+                # 5. message_delta
+                output_tokens = max(1, output_chars // 4)
+                yield _anthropic_sse("message_delta", {
+                    "type": "message_delta",
+                    "delta": {"stop_reason": "end_turn", "stop_sequence": None},
+                    "usage": {"output_tokens": output_tokens}
+                })
+
+                # 6. message_stop
+                yield _anthropic_sse("message_stop", {
+                    "type": "message_stop"
+                })
+            except Exception as exc:
+                log.warning("Anthropic streaming failed: %s", exc)
+                try:
+                    engine.reset_thread()
+                except Exception:
+                    pass
+                yield _anthropic_sse("error", {
+                    "type": "error",
+                    "error": {"type": "api_error", "message": str(exc)}
+                })
+
+        return StreamingResponse(sync_anthropic_stream(), media_type="text/event-stream", headers=_ANTHROPIC_SSE_HEADERS)
+
+    def run() -> str:
+        return "".join(safe_chat_stream(cookies, prompt, expires, timeout, account_id=acc_id))
+
+    try:
+        text = await asyncio.to_thread(run)
+    except MuseAuthError as exc:
+        raise HTTPException(401, str(exc))
+    except MuseGenerationError as exc:
+        raise HTTPException(502, str(exc))
+
+    output_tokens = max(1, len(text) // 4)
+    return {
+        "id": msg_id,
+        "type": "message",
+        "role": "assistant",
+        "model": req.model,
+        "content": [
+            {
+                "type": "text",
+                "text": text
+            }
+        ],
+        "stop_reason": "end_turn",
+        "stop_sequence": None,
+        "usage": {
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens
+        }
+    }
 
 @app.get("/v1/media/{name}")
 def get_media(name: str):

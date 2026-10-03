@@ -4,13 +4,13 @@
   <img src="https://img.shields.io/badge/Python-3.10%2B-blue?logo=python" alt="Python" />
   <img src="https://img.shields.io/badge/FastAPI-0.115%2B-009688?logo=fastapi" alt="FastAPI" />
   <img src="https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker" alt="Docker" />
-  <img src="https://img.shields.io/badge/API-OpenAI%20Compatible-green" alt="OpenAI Compatible" />
+  <img src="https://img.shields.io/badge/API-OpenAI%20%7C%20Anthropic%20Compatible-green" alt="OpenAI & Anthropic Compatible" />
   <img src="https://img.shields.io/badge/License-MIT-orange" alt="MIT License" />
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey" alt="Platform" />
 </p>
 
 <p align="center">
-  <b>OpenAI-compatible API for <a href="https://muse.ai/">muse.ai</a>: chat, image generation, video generation, multi-account pool, and automatic session renewal.</b>
+  <b>OpenAI- and Anthropic-compatible API for <a href="https://muse.ai/">muse.ai</a>: chat, image generation, video generation, Claude Code & Agent SDK support, multi-account pool, and automatic session renewal.</b>
 </p>
 
 > **Fork notice:** This is a fork of [czg86389-hub/muse2api](https://github.com/czg86389-hub/muse2api). The original runs on Linux and Docker. This fork adds native Windows support (auto-detects Chrome/Edge, no WSL needed), a bilingual EN/ZH admin UI, hardened anti-bot stealth, speed improvements, and universal cookie import. All core reverse-engineering credit goes to the original author and the [LINUX DO](https://linux.do/) community.
@@ -19,17 +19,18 @@
 
 ## What it does
 
-muse2api wraps [muse.ai](https://muse.ai/)'s web interface as a drop-in OpenAI-compatible REST API. Any client that speaks OpenAI's API (ChatGPT apps, Cursor, Continue, LangChain, curl) works out of the box with no code changes.
+muse2api wraps [muse.ai](https://muse.ai/)'s web interface as a drop-in OpenAI- and Anthropic-compatible REST API. Any client that speaks OpenAI's API or Anthropic's Messages API (Claude Code, Claude Agent SDK, ChatGPT clients, Cursor, Continue, LangChain, curl) works out of the box with no code changes.
 
 | Capability | Endpoint |
 |---|---|
-| Chat (streaming + sync) | `POST /v1/chat/completions` |
+| Chat (OpenAI format, streaming + sync) | `POST /v1/chat/completions` |
+| Messages (Anthropic format, streaming + sync) | `POST /v1/messages` |
 | Image generation | `POST /v1/images/generations` |
 | Image editing | `POST /v1/images/edits` |
 | Video generation | `POST /v1/videos` |
 | Video status polling | `GET /v1/videos/{task_id}` |
+| Token counting | `POST /v1/messages/count_tokens` |
 | Serve generated media | `GET /v1/media/{filename}` |
-
 Features:
 
 - Multi-account pool: import multiple muse.ai accounts; requests are load-balanced and automatically fail over.
@@ -119,6 +120,44 @@ curl -X POST http://localhost:18610/v1/chat/completions \
   }'
 ```
 
+### Anthropic Messages API (Claude Code & Claude Agent SDK)
+
+Use with Claude Code in the terminal:
+```bash
+export ANTHROPIC_BASE_URL="http://localhost:18610"
+export ANTHROPIC_API_KEY="m2a_your_key"
+claude
+```
+
+Use with the Anthropic Python SDK:
+```python
+import anthropic
+
+client = anthropic.Anthropic(
+    base_url="http://localhost:18610",
+    api_key="m2a_your_key",
+)
+
+response = client.messages.create(
+    model="claude-3-5-sonnet",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Hello!"}],
+)
+print(response.content[0].text)
+```
+
+Use with curl:
+```bash
+curl -X POST http://localhost:18610/v1/messages \
+  -H "x-api-key: m2a_your_key" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-3-5-sonnet",
+    "max_tokens": 1024,
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
 ### Image generation
 
 ```bash

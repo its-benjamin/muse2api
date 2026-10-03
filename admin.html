@@ -593,9 +593,9 @@
         <thead><tr><th data-i18n="doc.thModel">Model ID</th><th data-i18n="doc.thPurpose">Purpose</th><th data-i18n="doc.thEp">Endpoint</th></tr></thead>
         <tbody>
           <tr><td class="mono">muse-spark</td><td data-i18n="doc.mSpark">Text / code chat (streaming supported)</td><td class="mono">POST /v1/chat/completions<br>POST /v1/responses</td></tr>
+          <tr><td class="mono">claude-3-5-sonnet</td><td data-i18n="doc.mClaude">Anthropic Messages format (Claude Code / Agent SDK)</td><td class="mono">POST /v1/messages</td></tr>
           <tr><td class="mono">muse-image</td><td data-i18n="doc.mImg">Text-to-image / image editing</td><td class="mono">POST /v1/images/generations</td></tr>
           <tr><td class="mono">muse-video</td><td data-i18n="doc.mVid">Text-to-video / image-to-video</td><td class="mono">POST /v1/videos → GET /v1/videos/{id}</td></tr>
-        </tbody>
       </table></div>
       <div class="hint" style="margin-top:6px" data-i18n="doc.mNote">
         These three are the real Muse capabilities: <b>Muse Spark</b> (language/code), <b>Muse Image</b> (images),
@@ -661,7 +661,29 @@ t = requests.post(<span class="s">"BASE/v1/videos"</span>, json={<span class="s"
     time.sleep(<span class="s">5</span>)
 <span class="k">print</span>(s)</pre>
 
-      <h4 data-i18n="doc.h6">6. Admin API</h4>
+      <h4 data-i18n="doc.hAnthropic">6. Anthropic Messages API (Claude Code & Agent SDK)</h4>
+      <pre class="code"><span class="cp" onclick="cp(this)" data-i18n="doc.cp">Copy</span><span class="c"># Claude Code (terminal):</span>
+export ANTHROPIC_BASE_URL=<span class="s">"http://127.0.0.1:18610"</span>
+export ANTHROPIC_API_KEY=<span class="s">"$MUSE2API_KEY"</span>
+claude
+
+<span class="c"># Python (Anthropic SDK):</span>
+<span class="k">import</span> anthropic
+client = anthropic.Anthropic(base_url=<span class="s">"http://127.0.0.1:18610"</span>, api_key=<span class="s">"m2a_..."</span>)
+msg = client.messages.create(
+    model=<span class="s">"claude-3-5-sonnet"</span>, max_tokens=1024,
+    messages=[{<span class="s">"role"</span>: <span class="s">"user"</span>, <span class="s">"content"</span>: <span class="s">"Hello!"</span>}]
+)
+<span class="k">print</span>(msg.content[0].text)
+
+<span class="c"># curl (POST /v1/messages)</span>
+curl -X POST <span class="s">"BASE/v1/messages"</span> \
+  -H <span class="s">"x-api-key: $MUSE2API_KEY"</span> \
+  -H <span class="s">"anthropic-version: 2023-06-01"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"model":"claude-3-5-sonnet","max_tokens":1024,"messages":[{"role":"user","content":"Hello"}]}'</span></pre>
+
+      <h4 data-i18n="doc.h6">7. Admin API</h4>
       <div class="tblwrap"><table>
         <thead><tr><th data-i18n="doc.thMethod">Method</th><th data-i18n="doc.thPath">Path</th><th data-i18n="doc.thDesc">Description</th></tr></thead>
         <tbody>
@@ -673,19 +695,20 @@ t = requests.post(<span class="s">"BASE/v1/videos"</span>, json={<span class="s"
           <tr><td class="mono">POST</td><td class="mono">/admin/accounts/{id}/test</td><td data-i18n="doc.aTest">Verify session for real (also refreshes quota)</td></tr>
           <tr><td class="mono">POST</td><td class="mono">/admin/accounts/{id}/quota</td><td data-i18n="doc.aQuota">Read this account's remaining quota live</td></tr>
           <tr><td class="mono">POST</td><td class="mono">/admin/accounts/{id}/cookies</td><td data-i18n="doc.aCookies">Update this account's cookies</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/v1/messages</td><td data-i18n="doc.aMessages">Anthropic Messages endpoint</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/v1/messages/count_tokens</td><td data-i18n="doc.aCountTokens">Token counting endpoint</td></tr>
           <tr><td class="mono">GET</td><td class="mono">/admin/tasks</td><td data-i18n="doc.aTasks">Task history</td></tr>
           <tr><td class="mono">GET</td><td class="mono">/admin/media</td><td data-i18n="doc.aMedia">Media library listing</td></tr>
-        </tbody>
       </table></div>
 
-      <h4 data-i18n="doc.h7">7. Auth</h4>
+      <h4 data-i18n="doc.h7">8. Auth</h4>
       <div class="hint" style="margin:0" data-i18n="doc.auth">
-        All endpoints except <code>/healthz</code>, <code>/readyz</code>, and <code>/v1/media/*</code> require
-        <code>Authorization: Bearer &lt;API Key&gt;</code>. The API Key lives on the server in
-        <code>/opt/muse2api/.env</code> as <code>MUSE2API_KEY</code>.
+        All endpoints except <code>/healthz</code>, <code>/readyz</code>, <code>/api/hello</code>, and <code>/v1/media/*</code> require
+        authentication. Both <code>Authorization: Bearer &lt;API Key&gt;</code> and <code>x-api-key: &lt;API Key&gt;</code>
+        are accepted. The API Key is configured in <code>.env</code> as <code>MUSE2API_KEY</code>.
       </div>
 
-      <h4 data-i18n="doc.h8">8. Connecting clients / agents</h4>
+      <h4 data-i18n="doc.h8">9. Connecting clients / agents</h4>
       <div class="hint" data-i18n="doc.cliHint">
         Any client that supports a custom OpenAI-compatible endpoint works with just three values:
       </div>
@@ -899,9 +922,11 @@ const I18N = {
     "doc.h3": "3. Images (curl)",
     "doc.h4": "4. Video (curl, async)",
     "doc.h5": "5. Python (OpenAI SDK compatible)",
-    "doc.h6": "6. Admin API",
-    "doc.h7": "7. Auth",
-    "doc.h8": "8. Connecting clients / agents",
+    "doc.hAnthropic": "6. Anthropic Messages API (Claude Code & Agent SDK)",
+    "doc.h6": "7. Admin API",
+    "doc.h7": "8. Auth",
+    "doc.h8": "9. Connecting clients / agents",
+    "doc.mClaude": "<td data-i18n=\"doc.mClaude\">Anthropic Messages format (Claude Code / Agent SDK)",
     "doc.thModel": "<th data-i18n=\"doc.thModel\">Model ID",
     "doc.thPurpose": "<th data-i18n=\"doc.thPurpose\">Purpose",
     "doc.thEp": "<th data-i18n=\"doc.thEp\">Endpoint",
@@ -932,6 +957,8 @@ const I18N = {
     "doc.aTest": "<td data-i18n=\"doc.aTest\">Verify session for real (also refreshes quota)",
     "doc.aQuota": "<td data-i18n=\"doc.aQuota\">Read this account's remaining quota live",
     "doc.aCookies": "<td data-i18n=\"doc.aCookies\">Update this account's cookies",
+    "doc.aMessages": "<td data-i18n=\"doc.aMessages\">Anthropic Messages endpoint",
+    "doc.aCountTokens": "<td data-i18n=\"doc.aCountTokens\">Token counting endpoint",
     "doc.aTasks": "<td data-i18n=\"doc.aTasks\">Task history",
     "doc.aMedia": "<td data-i18n=\"doc.aMedia\">Media library listing",
     "doc.cChat": "<td data-i18n=\"doc.cChat\">Chat clients (desktop, Web UI, browser extensions)",
@@ -1273,9 +1300,11 @@ const I18N = {
     "doc.h3": "3. 生图（curl）",
     "doc.h4": "4. 生视频（curl，异步）",
     "doc.h5": "5. Python（openai SDK 兼容）",
-    "doc.h6": "6. 管理接口",
-    "doc.h7": "7. 鉴权",
-    "doc.h8": "8. 接入各类客户端 / 智能体",
+    "doc.hAnthropic": "6. Anthropic Messages 接口（Claude Code & Agent SDK）",
+    "doc.h6": "7. 管理接口",
+    "doc.h7": "8. 鉴权",
+    "doc.h8": "9. 接入各类客户端 / 智能体",
+    "doc.mClaude": "<td>Anthropic Messages 格式（Claude Code / Agent SDK 兼容）",
     "doc.thModel": "<th>模型 ID",
     "doc.thPurpose": "<th>用途",
     "doc.thEp": "<th>接口",
@@ -1306,6 +1335,8 @@ const I18N = {
     "doc.aTest": "<td>真实校验会话有效性（顺带刷新额度）",
     "doc.aQuota": "<td>实时读取该账号剩余额度",
     "doc.aCookies": "<td>更新该账号 cookie",
+    "doc.aMessages": "<td>Anthropic Messages 接口",
+    "doc.aCountTokens": "<td>Token 统计接口",
     "doc.aTasks": "<td>任务记录",
     "doc.aMedia": "<td>媒体库列表",
     "doc.cChat": "<td>对话 / 聊天类（桌面端、Web UI、浏览器插件）",
