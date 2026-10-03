@@ -148,15 +148,25 @@ MODELS = [
     {"id": "muse-video", "object": "model", "type": "model", "display_name": "Muse Video", "owned_by": "muse",
      "description": "Muse Video -- text-to-video / image-to-video (free web quota)"},
     {"id": "claude-3-7-sonnet", "object": "model", "type": "model", "display_name": "Claude 3.7 Sonnet", "owned_by": "anthropic",
-     "description": "Claude 3.7 Sonnet (mapped to Muse Spark)"},
+     "description": "Claude 3.7 Sonnet (hybrid reasoning, mapped to Muse Spark)"},
+    {"id": "claude-3-7-sonnet-20250219", "object": "model", "type": "model", "display_name": "Claude 3.7 Sonnet (20250219)", "owned_by": "anthropic",
+     "description": "Claude 3.7 Sonnet snapshot (mapped to Muse Spark)"},
     {"id": "claude-3-5-sonnet", "object": "model", "type": "model", "display_name": "Claude 3.5 Sonnet", "owned_by": "anthropic",
      "description": "Claude 3.5 Sonnet (mapped to Muse Spark)"},
     {"id": "claude-3-5-sonnet-20241022", "object": "model", "type": "model", "display_name": "Claude 3.5 Sonnet v2", "owned_by": "anthropic",
-     "description": "Claude 3.5 Sonnet v2 (mapped to Muse Spark)"},
+     "description": "Claude 3.5 Sonnet (20241022, mapped to Muse Spark)"},
     {"id": "claude-3-5-haiku", "object": "model", "type": "model", "display_name": "Claude 3.5 Haiku", "owned_by": "anthropic",
      "description": "Claude 3.5 Haiku (mapped to Muse Spark)"},
+    {"id": "claude-3-5-haiku-20241022", "object": "model", "type": "model", "display_name": "Claude 3.5 Haiku (20241022)", "owned_by": "anthropic",
+     "description": "Claude 3.5 Haiku snapshot (mapped to Muse Spark)"},
     {"id": "claude-3-opus", "object": "model", "type": "model", "display_name": "Claude 3 Opus", "owned_by": "anthropic",
      "description": "Claude 3 Opus (mapped to Muse Spark)"},
+    {"id": "claude-3-opus-20240229", "object": "model", "type": "model", "display_name": "Claude 3 Opus (20240229)", "owned_by": "anthropic",
+     "description": "Claude 3 Opus snapshot (mapped to Muse Spark)"},
+    {"id": "claude-sonnet-4", "object": "model", "type": "model", "display_name": "Claude Sonnet 4", "owned_by": "anthropic",
+     "description": "Claude Sonnet 4 (mapped to Muse Spark)"},
+    {"id": "claude-opus-4", "object": "model", "type": "model", "display_name": "Claude Opus 4", "owned_by": "anthropic",
+     "description": "Claude Opus 4 (mapped to Muse Spark)"},
 ]
 
 # Downstream clients (Codex / Cline / others) pass OpenAI- or Anthropic-style model names,
@@ -197,7 +207,23 @@ MODEL_ALIASES = {
 
 def resolve_model(name: str | None, default: str = "muse-image") -> str:
     n = (name or "").strip().lower()
-    return MODEL_ALIASES.get(n, n or default)
+    if not n:
+        return default
+    if n in MODEL_ALIASES:
+        return MODEL_ALIASES[n]
+    # Wildcard prefix matching for all current and future Claude models
+    if n.startswith("claude") or n.startswith("anthropic"):
+        return "muse-spark"
+    # Wildcard prefix matching for OpenAI language & reasoning models
+    if any(n.startswith(p) for p in ("gpt-", "o1", "o3", "o4", "chatgpt", "codex")):
+        return "muse-spark"
+    # Wildcard prefix matching for image models
+    if any(n.startswith(p) for p in ("dall-e", "flux", "midjourney", "image")):
+        return "muse-image"
+    # Wildcard prefix matching for video models
+    if any(n.startswith(p) for p in ("sora", "veo", "kling", "runway", "video")):
+        return "muse-video"
+    return n or default
 
 
 # ------------------------- Auth -------------------------
