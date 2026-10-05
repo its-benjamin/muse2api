@@ -365,6 +365,12 @@ def main() -> int:
         f"--remote-debugging-port={args.port}",
         f"--user-data-dir={profile}",
         "--no-first-run", "--no-default-browser-check",
+        # 受限环境（容器 / 沙箱 / CI）里 Chrome 自带的沙箱会初始化失败：
+        #   "sandbox initialization failed: Operation not permitted"
+        # → GPU/网络子进程崩掉 → Chrome 直接退出，调试端口从未监听起来，
+        #   表现是 WebSocket 一握手就 "连接已关闭 / Broken pipe"。
+        # 加下面两个开关可绕过。日常桌面环境无副作用（只是不启用 Chrome 自带沙箱）。
+        "--no-sandbox", "--disable-gpu",
         "--new-window", SITE,
     ]
     say("Opening a separate browser window (your daily browser is untouched)...")
@@ -378,6 +384,7 @@ def main() -> int:
         except RuntimeError as exc:
             say(f"✗ {exc}")
             say("  Hint: if the browser is already running, quit it completely and retry.")
+            say("  (If a daily Chrome is open, it takes over the new window and the debug port never starts.)")
             return 4
         ws = WS(ws_url)
 

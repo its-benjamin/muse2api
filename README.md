@@ -13,7 +13,7 @@
   <b>OpenAI- and Anthropic-compatible API for <a href="https://muse.ai/">muse.ai</a>: chat, image generation, video generation, Claude Code & Agent SDK support, multi-account pool, and automatic session renewal.</b>
 </p>
 
-> **Fork notice:** This is a fork of [czg86389-hub/muse2api](https://github.com/czg86389-hub/muse2api). The original runs on Linux and Docker. This fork adds native Windows support (auto-detects Chrome/Edge, no WSL needed), a bilingual EN/ZH admin UI, hardened anti-bot stealth, speed improvements, and universal cookie import. All core reverse-engineering credit goes to the original author and the [LINUX DO](https://linux.do/) community.
+> **Fork notice:** This is a fork of [czg86389-hub/muse2api](https://github.com/czg86389-hub/muse2api). The original runs on Linux and Docker. This fork adds native Windows support (auto-detects Chrome/Edge, no WSL needed), a bilingual EN/ZH admin UI, hardened anti-bot stealth, speed improvements, universal cookie import, and full **Anthropic Messages API** support (`POST /v1/messages` — works with Claude Code, Claude Agent SDK, and the Anthropic Python/TS SDKs). All core reverse-engineering credit goes to the original author and the [LINUX DO](https://linux.do/) community.
 
 ---
 
@@ -271,6 +271,7 @@ muse2api/
 ├── INSTALLATION.md         # Full setup tutorial <- start here
 └── CONTRIBUTING.md         # How to contribute
 ```
+```
 
 ---
 
@@ -301,7 +302,8 @@ Thanks to everyone who contributed (in PR merge order):
 - [@czg86389-hub](https://github.com/czg86389-hub): original author, all core reverse-engineering and architecture
 - [@cpt-kenvie](https://github.com/cpt-kenvie) ([PR #2](https://github.com/czg86389-hub/muse2api/pull/2)): Docker Compose `MUSE2API_KEY` fix
 - [@CarloCPP](https://github.com/CarloCPP) ([PR #6](https://github.com/czg86389-hub/muse2api/pull/6)): Tampermonkey userscript + keepalive for disabled accounts
-
+- [@djs-91](https://github.com/djs-91) ([PR #9](https://github.com/czg86389-hub/muse2api/pull/9)): fix `base_url` collapsing to bare `/v1` when `MUSE2API_PUBLIC_BASE` is unset
+- [@toby-bridges](https://github.com/toby-bridges) ([PR #8](https://github.com/czg86389-hub/muse2api/pull/8)): adapt to muse.ai Chinese UI — fix attachment upload confirmation, Stop detection, video vs cover-image selection
 PRs and issues are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
