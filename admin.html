@@ -135,13 +135,17 @@
 
   /* ---------- Media library ---------- */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
-  .tile{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;transition:.18s}
+  .tile{position:relative;background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;transition:.18s}
   .tile:hover{border-color:#37415a;transform:translateY(-2px)}
-  .tile .thumb{height:150px;background:#060911;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .tile.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .tile .check-tag{position:absolute;top:8px;left:8px;z-index:3;display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:rgba(15,23,42,.82);backdrop-filter:blur(4px);border:1px solid var(--line);cursor:pointer;transition:.15s}
+  .tile .check-tag:hover{border-color:var(--accent);background:rgba(15,23,42,.95)}
+  .tile .check-tag input{width:14px;height:14px;margin:0;cursor:pointer;accent-color:var(--accent)}
+  .tile .thumb{height:150px;background:#060911;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
   .tile .thumb img,.tile .thumb video{width:100%;height:100%;object-fit:contain;display:block}
   .tile .meta{padding:9px 11px;font-size:11.5px;color:var(--muted)}
   .tile .meta .nm{font-family:ui-monospace,monospace;color:var(--text);font-size:11px;word-break:break-all}
-  .tile .meta .ac{display:flex;gap:6px;margin-top:7px}
+  .tile .meta .ac{display:flex;gap:6px;margin-top:7px;align-items:center}
 
   /* ---------- Result preview ---------- */
   .result{margin-top:14px;padding:14px;background:var(--bg2);border:1px dashed var(--line);border-radius:var(--radius);display:none}
@@ -541,10 +545,18 @@
   <!-- ==================== Media ==================== -->
   <section class="tab" id="tab-media">
     <div class="card">
-      <h3><span data-i18n="media.title">Media library</span> <span class="tag" id="mediaCount">0</span></h3>
-      <div class="hint" data-i18n="media.hint">All generated images/videos saved to disk — download directly or hand the links to downstream projects.</div>
-      <div style="margin-bottom:14px"><button class="ghost mini" onclick="loadMedia()" data-i18n="media.refresh">Refresh</button></div>
-      <div class="grid" id="mediaGrid" data-i18n="media.loading"><div class="empty">Loading…</div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+        <div>
+          <h3 style="margin:0 0 4px"><span data-i18n="media.title">Media library</span> <span class="tag" id="mediaCount">0</span></h3>
+          <div class="hint" style="margin:0" data-i18n="media.hint">All generated images/videos saved to disk — download directly or hand the links to downstream projects.</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button class="ghost mini" onclick="loadMedia()" data-i18n="media.refresh">Refresh</button>
+          <button class="ghost mini" id="btnSelectAllMedia" onclick="toggleSelectAllMedia()" data-i18n="media.selectAll">Select all</button>
+          <button class="danger mini" id="btnDelSelectedMedia" onclick="delSelectedMedia()" style="display:none"><span data-i18n="media.delSelected">Delete selected</span> (<span id="selMediaCount">0</span>)</button>
+        </div>
+      </div>
+      <div class="grid" id="mediaGrid"><div class="empty" data-i18n="media.loading">Loading…</div></div>
     </div>
   </section>
 
@@ -699,6 +711,7 @@ curl -X POST <span class="s">"BASE/v1/messages"</span> \
           <tr><td class="mono">POST</td><td class="mono">/v1/messages/count_tokens</td><td data-i18n="doc.aCountTokens">Token counting endpoint</td></tr>
           <tr><td class="mono">GET</td><td class="mono">/admin/tasks</td><td data-i18n="doc.aTasks">Task history</td></tr>
           <tr><td class="mono">GET</td><td class="mono">/admin/media</td><td data-i18n="doc.aMedia">Media library listing</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/admin/media/delete</td><td data-i18n="doc.aMediaDel">Bulk delete media files</td></tr>
       </table></div>
 
       <h4 data-i18n="doc.h7">8. Auth</h4>
@@ -914,6 +927,9 @@ const I18N = {
     "ck.lifeBody": "<b>How long does an account actually last?<\/b> It depends on the earliest-expiring core cookie, i.e.\n        <code>hatch_vml<\/code> — about <b>2 days<\/b>.<br>\n        <b style=\"color:var(--warn)\">Note: heavy usage does NOT extend this 2-day window.<\/b>\n        After each generation this service does read back the freshly issued muse.ai cookies into the pool\n        (so you will see the Expiry column change), but the core cookie expiry\n        is <b>not extended<\/b> (confirmed by before/after generation experiments).<br>\n        <b>So: re-import roughly every 2 days.<\/b> Luckily it is quick — one click on the extension icon.<br>\n        <b>Import several accounts at once<\/b>: the pool rotates least-recently-used, so more accounts means more stability\n        and spreads out re-imports (one a day instead of everything expiring at once).<br>\n        <b>When to re-import?<\/b> When Expiry in the account list turns\n        <span class=\"badge bad\">Expired<\/span> and status turns\n        <span class=\"badge bad\">Unhealthy<\/span>, or a Missing core badge appears.",
     "task.hint": "Video generation is async; status goes queued → processing → succeeded / failed.",
     "media.hint": "All generated images/videos saved to disk — download directly or hand the links to downstream projects.",
+    "media.selectAll": "Select all",
+    "media.cancelAll": "Deselect all",
+    "media.delSelected": "Delete selected",
     "play.imgHint": "Calls muse.ai for real; images return in about 10–30s.",
     "play.vidHint": "Async task, usually done in 60–120s; this page polls progress automatically.",
     "doc.intro": "The API mirrors OpenAI conventions — downstream projects only need to change <code>base_url<\/code> and <code>api_key<\/code>.",
@@ -961,6 +977,7 @@ const I18N = {
     "doc.aCountTokens": "<td data-i18n=\"doc.aCountTokens\">Token counting endpoint",
     "doc.aTasks": "<td data-i18n=\"doc.aTasks\">Task history",
     "doc.aMedia": "<td data-i18n=\"doc.aMedia\">Media library listing",
+    "doc.aMediaDel": "<td data-i18n=\"doc.aMediaDel\">Bulk delete media files",
     "doc.cChat": "<td data-i18n=\"doc.cChat\">Chat clients (desktop, Web UI, browser extensions)",
     "doc.cStream": "<td data-i18n=\"doc.cStream\">Streaming output (typewriter effect)",
     "doc.cCode": "<td data-i18n=\"doc.cCode\">Code / inline completion plugins",
@@ -1098,6 +1115,15 @@ const I18N = {
     "js.noMedia": "No media generated yet",
     "js.open": "Open",
     "js.dl": "Download",
+    "js.mediaDel": "Delete",
+    "js.mediaCheckTip": "Select for bulk action",
+    "js.mediaDelConfirm": "Delete \"{name}\"? This cannot be undone.",
+    "js.mediaDelOk": "Deleted",
+    "js.mediaNotFound": "File not found or already deleted",
+    "js.mediaDelFail": "Delete failed: {msg}",
+    "js.mediaSelectFirst": "Select files first",
+    "js.mediaDelSelectedConfirm": "Permanently delete {count} selected file(s)? This cannot be undone.",
+    "js.mediaDelSelectedOk": "Deleted {n} file(s)",
     "js.enterPrompt": "Enter a prompt first",
     "js.generating": "Generating...",
     "js.imgSubmit": "Submitting image task and polling status...",
@@ -1292,6 +1318,9 @@ const I18N = {
     "ck.lifeBody": "<b>账号实际能活多久？<\/b>取决于最早过期的那条核心 cookie，也就是\n        <code>hatch_vml<\/code> —— 大约 <b>2 天<\/b>。<br>\n        <b style=\"color:var(--warn)\">注意：这个 2 天不会因为「用得多」而延长。<\/b>\n        本服务每次生成完成后确实会把 muse.ai 新下发的 cookie 读回来写进账号池\n        （所以你会看到「有效期」列的数值有更新），但核心 cookie 的到期时间\n        <b>不会被推后<\/b>（已做生成前后对照实验确认）。<br>\n        <b>所以：大约每 2 天要重新导入一次。<\/b>好在很快 —— 点一下扩展图标就行。<br>\n        <b>建议一次多导几个账号<\/b>：账号池按「最久未用」轮转，多账号既更稳，\n        也能把重导摊开（每天导一个，而不是所有账号同时失效）。<br>\n        <b>什么时候要重导？<\/b>账号列表里「有效期」变成\n        <span class=\"badge bad\">已过期<\/span>、状态变成\n        <span class=\"badge bad\">异常<\/span>，或出现「缺核心」标记时。",
     "task.hint": "生视频是异步任务，状态会从 queued → processing → succeeded / failed。",
     "media.hint": "所有已生成并落盘的图片 / 视频，可直接下载或把链接给下游项目使用。",
+    "media.selectAll": "全选",
+    "media.cancelAll": "取消全选",
+    "media.delSelected": "删除选中",
     "play.imgHint": "真实调用 muse.ai 生成，图片约 10–30 秒返回。",
     "play.vidHint": "异步任务，一般 60–120 秒完成，页面会自动轮询进度。",
     "doc.intro": "接口与 OpenAI 风格对齐，下游项目只需改 <code>base_url<\/code> 和 <code>api_key<\/code>。",
@@ -1339,6 +1368,7 @@ const I18N = {
     "doc.aCountTokens": "<td>Token 统计接口",
     "doc.aTasks": "<td>任务记录",
     "doc.aMedia": "<td>媒体库列表",
+    "doc.aMediaDel": "<td>批量删除媒体文件",
     "doc.cChat": "<td>对话 / 聊天类（桌面端、Web UI、浏览器插件）",
     "doc.cStream": "<td>流式输出（打字机效果）",
     "doc.cCode": "<td>代码补全 / 内联补全插件",
@@ -1476,6 +1506,15 @@ const I18N = {
     "js.noMedia": "尚未生成任何媒体",
     "js.open": "打开",
     "js.dl": "下载",
+    "js.mediaDel": "删除",
+    "js.mediaCheckTip": "勾选以批量操作",
+    "js.mediaDelConfirm": "确定要删除「{name}」？此操作无法撤销。",
+    "js.mediaDelOk": "删除成功",
+    "js.mediaNotFound": "文件不存在或已被删除",
+    "js.mediaDelFail": "删除失败：{msg}",
+    "js.mediaSelectFirst": "请先选择要删除的媒体文件",
+    "js.mediaDelSelectedConfirm": "确定要永久删除选中的 {count} 个媒体文件？此操作无法撤销。",
+    "js.mediaDelSelectedOk": "已成功删除 {n} 个文件",
     "js.enterPrompt": "请先输入提示词",
     "js.generating": "生成中...",
     "js.imgSubmit": "正在提交图片任务并轮询状态...",
@@ -2048,15 +2087,116 @@ async function clearTasks(){
 }
 
 /* ================= Media library ================= */
+let _allMedia = [];
+let _selectedMedia = new Set();
+
+function updateMediaSelectionUI(){
+  const count = _selectedMedia.size;
+  const total = _allMedia.length;
+  const btnSelAll = $('btnSelectAllMedia');
+  const btnDel = $('btnDelSelectedMedia');
+  const countEl = $('selMediaCount');
+
+  if (countEl) countEl.textContent = count;
+  if (btnDel) {
+    btnDel.style.display = count > 0 ? 'inline-flex' : 'none';
+  }
+  if (btnSelAll) {
+    btnSelAll.textContent = (total > 0 && count === total) ? t('media.cancelAll') : t('media.selectAll');
+  }
+
+  document.querySelectorAll('.tile[data-name]').forEach(el => {
+    const name = el.getAttribute('data-name');
+    const chk = el.querySelector('.tile-check');
+    const isSel = _selectedMedia.has(name);
+    if (chk) chk.checked = isSel;
+    if (isSel) el.classList.add('selected');
+    else el.classList.remove('selected');
+  });
+}
+
+function toggleMediaSelect(name){
+  if (_selectedMedia.has(name)) {
+    _selectedMedia.delete(name);
+  } else {
+    _selectedMedia.add(name);
+  }
+  updateMediaSelectionUI();
+}
+
+function toggleSelectAllMedia(){
+  if (!_allMedia.length) return;
+  if (_selectedMedia.size === _allMedia.length) {
+    _selectedMedia.clear();
+  } else {
+    _selectedMedia = new Set(_allMedia.map(m => m.name));
+  }
+  updateMediaSelectionUI();
+}
+
+async function delSingleMedia(name){
+  if (!confirm(t('js.mediaDelConfirm', {name}))) return;
+  try{
+    const r = await api('/admin/media/delete', {
+      method: 'POST',
+      body: JSON.stringify({ names: [name] })
+    });
+    if (r.removed > 0) {
+      toast(t('js.mediaDelOk'), 'ok');
+      _selectedMedia.delete(name);
+      loadMedia();
+    } else {
+      toast(t('js.mediaNotFound'), 'warn');
+      loadMedia();
+    }
+  }catch(e){
+    toast(t('js.mediaDelFail', {msg: e.message}), 'bad');
+  }
+}
+
+async function delSelectedMedia(){
+  const count = _selectedMedia.size;
+  if (!count) return toast(t('js.mediaSelectFirst'), 'warn');
+  if (!confirm(t('js.mediaDelSelectedConfirm', {count}))) return;
+
+  const names = Array.from(_selectedMedia);
+  const btn = $('btnDelSelectedMedia');
+  if (btn) { btn.disabled = true; }
+
+  try{
+    const r = await api('/admin/media/delete', {
+      method: 'POST',
+      body: JSON.stringify({ names })
+    });
+    toast(t('js.mediaDelSelectedOk', {n: r.removed || 0}), 'ok');
+    _selectedMedia.clear();
+    loadMedia();
+  }catch(e){
+    toast(t('js.mediaDelFail', {msg: e.message}), 'bad');
+  }finally{
+    if (btn) btn.disabled = false;
+  }
+}
+
 async function loadMedia(){
   try{
     const d = await api('/admin/media');
     const ms = d.media || [];
+    _allMedia = ms;
+    const validNames = new Set(ms.map(m => m.name));
+    for (const name of Array.from(_selectedMedia)) {
+      if (!validNames.has(name)) _selectedMedia.delete(name);
+    }
     $('mediaCount').textContent = ms.length;
     $('sMedia').textContent = ms.length;
-    if (!ms.length){ $('mediaGrid').innerHTML = '<div class="empty">' + esc(t('js.noMedia')) + '</div>'; return; }
-    $('mediaGrid').innerHTML = ms.map(m => `
-      <div class="tile">
+    if (!ms.length){ $('mediaGrid').innerHTML = '<div class="empty">' + esc(t('js.noMedia')) + '</div>'; updateMediaSelectionUI(); return; }
+    $('mediaGrid').innerHTML = ms.map(m => {
+      const isSel = _selectedMedia.has(m.name);
+      return `
+      <div class="tile ${isSel ? 'selected' : ''}" data-name="${esc(m.name)}">
+        <label class="check-tag" title="${esc(t('js.mediaCheckTip'))}" onclick="event.stopPropagation()">
+          <input type="checkbox" class="tile-check" ${isSel ? 'checked' : ''} onchange="toggleMediaSelect('${esc(m.name)}')">
+        </label>
         <div class="thumb">${m.kind === 'video'
           ? `<video src="${esc(m.url)}" muted playsinline preload="metadata"></video>`
           : `<img src="${esc(m.url)}" loading="lazy" alt="">`}</div>
@@ -2064,11 +2204,14 @@ async function loadMedia(){
           <div class="nm" title="${esc(m.name)}">${esc(m.name)}</div>
           <div style="margin-top:3px">${fmtBytes(m.bytes)} · ${fmtTime(m.mtime)}</div>
           <div class="ac">
-            <a class="badge info" href="${esc(m.url)}" target="_blank">' + esc(t('js.open')) + '</a>
-            <a class="badge mute" href="${esc(m.url)}" download>' + esc(t('js.dl')) + '</a>
+            <a class="badge info" href="${esc(m.url)}" target="_blank">${esc(t('js.open'))}</a>
+            <a class="badge mute" href="${esc(m.url)}" download>${esc(t('js.dl'))}</a>
+            <a class="badge bad" href="javascript:void(0)" onclick="delSingleMedia('${esc(m.name)}')">${esc(t('js.mediaDel'))}</a>
           </div>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
+    updateMediaSelectionUI();
   }catch(e){ $('mediaGrid').innerHTML = '<div class="empty">' + esc(t('js.loadFail2', {msg: e.message})) + '</div>'; }
 }
 

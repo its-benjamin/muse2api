@@ -1,14 +1,15 @@
 {
-  "version": "1.6.0",
-  "updated_at": "2026-10-02",
+  "version": "1.6.1",
+  "updated_at": "2026-10-06",
   "repo": "https://github.com/its-benjamin/muse2api",
   "upstream": "https://github.com/czg86389-hub/muse2api",
   "highlights": [
+    "Media library: bulk select, select-all, and per-file delete (POST /admin/media/delete)",
+    "Update check fix: version comparison uses semver ordering, not just SHA equality",
     "Full native Windows local compatibility (start-windows.bat & start-windows.ps1, admin detection)",
     "Complete EN / 中文 bilingual switch in Web Console and Chrome Extension with i18n dictionary",
-    "Anti-bot stealth hardening: WebGL hardware spoofing, desktop UA/client-hints emulation, automation signature purging",
-    "Speed optimizations: eliminated full-DOM layout thrashing during streaming, faster attachment polling, reduced input latency",
-    "Universal cookie import: Netscape cookies.txt and Firefox/Chrome DevTools JSON support",
-    "Configurable browser idle shutdown (MUSE2API_BROWSER_IDLE_MIN) and experimental HTTP/2 (MUSE2API_HTTP2)"
+    "Anti-bot stealth hardening: WebGL hardware spoofing, desktop UA/client-hints emulation",
+    "Speed optimizations: faster attachment polling, reduced input latency",
+    "Anthropic Messages API support: POST /v1/messages (Claude Code & Agent SDK compatible)"
   ]
 }
