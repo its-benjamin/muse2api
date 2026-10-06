@@ -5,4 +5,5 @@ pydantic>=2.9
 requests>=2.32
 websocket-client>=1.8
 python-multipart>=0.0.9
-typesafe-sdk>=1.0  # Jev-powered tool-call dispatcher (MUSE2API_JEV_KEY for custom key)
+# Jev tool-call dispatcher uses OpenCode free endpoint (no extra dependency needed)
+# requests is already listed above. Set MUSE2API_JEV_KEY env var for paid TypeSafe fallback.

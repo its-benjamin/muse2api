@@ -593,6 +593,49 @@ def _content_text(content) -> str:
     return str(content)
 
 
+def _render_tool_result_text(tool_name: str, raw: str) -> str:
+    """Render tool result as natural in-conversation text — no protocol markers.
+
+    Muse should see this as factual context, like the user sharing info they looked up.
+    """
+    try:
+        data = json.loads(raw)
+        if isinstance(data, dict):
+            pairs = [f"{k}: {v}" for k, v in data.items() if v is not None and str(v).strip()]
+            pretty = ", ".join(pairs) if len(pairs) <= 4 else "\n".join(pairs)
+        elif isinstance(data, list):
+            lines = []
+            for item in data[:10]:
+                if isinstance(item, dict):
+                    kv = ", ".join(f"{k}: {v}" for k, v in item.items() if v is not None)
+                    lines.append(kv)
+                else:
+                    lines.append(str(item))
+            pretty = "\n".join(lines)
+        else:
+            pretty = str(data).strip()
+    except Exception:
+        pretty = raw.strip()
+    return pretty
+
+
+def _tool_call_label(tool_calls: list) -> str:  # noqa: ARG001
+    """Assistant tool_calls turn — return empty so it's skipped in the prompt."""
+    return ""
+
+
+def _match_tool_name(call_id: str | None, tool_calls_history: list[tuple]) -> str:
+    """Find the tool function name from recent assistant tool_call turns by call id."""
+    if not call_id:
+        return "tool"
+    for label_text in reversed(tool_calls_history):
+        # label_text is like "[Called: get_weather(city=\"Tokyo\")]"
+        m = re.search(r'\[Called: ([\w.]+)', label_text)
+        if m:
+            return m.group(1)
+    return "tool"
+
+
 def build_chat_prompt(messages: list[ChatMessage]) -> str:
     """Join messages into one prompt for muse.ai.
 
@@ -605,15 +648,15 @@ def build_chat_prompt(messages: list[ChatMessage]) -> str:
         role = (m.role or "").strip().lower()
         text = _content_text(m.content).strip()
         if role == "tool":
-            # Tool result -> forward as "user-provided information"
+            # Inject tool result as an ASSISTANT turn so muse reads it as data it
+            # already retrieved — prevents muse from firing its own web search.
             if text:
-                turns.append(("user", "[Tool result]\n" + text))
+                pretty = _render_tool_result_text("", text)
+                if pretty:
+                    turns.append(("assistant", pretty))
             continue
         if not text:
-            # Some clients send assistant messages with only tool_calls and no body text
-            if role == "assistant" and m.tool_calls:
-                turns.append(("assistant", "[Requesting tool call]" + json.dumps(
-                    m.tool_calls, ensure_ascii=False)[:600]))
+            # assistant turn with only tool_calls — omit (internal step, not shown)
             continue
         if role in ("system", "developer"):
             system.append(text)
@@ -650,12 +693,12 @@ def _anthropic_content_text(content) -> str:
                 if b_type in (None, "text", "input_text", "output_text"):
                     parts.append(str(block.get("text") or ""))
                 elif b_type == "tool_use":
-                    tool_name = block.get("name") or "tool"
-                    tool_input = json.dumps(block.get("input") or {}, ensure_ascii=False)
-                    parts.append(f"[Tool Call: {tool_name}({tool_input})]")
+                    # Skip tool_use blocks — internal step, not shown to muse
+                    pass
                 elif b_type == "tool_result":
                     res_content = _anthropic_content_text(block.get("content"))
-                    parts.append(f"[Tool Result]\n{res_content}")
+                    # Render as plain data — no protocol labels
+                    parts.append(_render_tool_result_text("", res_content))
                 elif b_type == "image":
                     parts.append("[image]")
         return "\n".join(p for p in parts if p)
@@ -671,7 +714,7 @@ def build_anthropic_prompt(req: AnthropicMessagesRequest) -> str:
         text = _anthropic_content_text(m.content).strip()
         if text:
             turns.append((role, text))
-
+        # Empty assistant turns (tool_calls only) → silently skipped by the text check above
     if len(turns) == 1 and not system_text and turns[0][0] == "user":
         return turns[0][1]
 
@@ -1505,7 +1548,14 @@ async def chat_completions(req: ChatRequest, _=Depends(auth)):
     # muse.ai's assistant explicitly refuses pseudo-tool-call JSON, so prompt injection
     # doesn't work.  Jev reads the conversation + tool definitions and selects the right
     # tool and its arguments directly.  Falls through to muse when no tool is triggered.
-    if req.tools:
+    # Only dispatch via Jev on round 1 (no tool results in history yet).
+    # Round 2+ has role="tool" messages — tool data is already injected as assistant
+    # context in the prompt; muse just needs to summarize it.
+    _has_tool_results = any(
+        (getattr(m, "role", None) or "") == "tool"
+        for m in req.messages
+    )
+    if req.tools and not _has_tool_results:
         jev_calls = await asyncio.to_thread(jev_tool_dispatch, req.messages, req.tools)
         if jev_calls:
             cid = "chatcmpl-" + uuid.uuid4().hex[:24]
@@ -1801,7 +1851,15 @@ async def anthropic_messages(req: AnthropicMessagesRequest, _=Depends(auth)):
         raise HTTPException(400, "messages is empty")
 
     # ── Jev tool-call dispatch for Anthropic Messages API ──────────────────────────
-    if req.tools:
+    # Skip on round 2+ (tool_result blocks present) — muse handles it from injected context.
+    _anth_has_results = any(
+        isinstance(m.content, list) and any(
+            isinstance(b, dict) and b.get("type") == "tool_result"
+            for b in m.content
+        )
+        for m in req.messages
+    )
+    if req.tools and not _anth_has_results:
         anthropic_messages_list = [m.model_dump() for m in req.messages]
         jev_calls = await asyncio.to_thread(jev_tool_dispatch, anthropic_messages_list, req.tools)
         if jev_calls:
