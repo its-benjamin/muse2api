@@ -751,18 +751,17 @@ curl -X POST <span class="s">"BASE/v1/messages"</span> \
           <tr><td data-i18n="doc.cTools">Translation / summary / explainer tools</td><td class="mono">POST /v1/chat/completions</td><td><span class="badge ok" data-i18n="doc.supported">✅ Supported</span></td></tr>
           <tr><td data-i18n="doc.cImg">Image clients</td><td class="mono">POST /v1/images/generations</td><td><span class="badge ok" data-i18n="doc.supported">✅ Supported</span></td></tr>
           <tr><td data-i18n="doc.cVid">Video generation clients</td><td class="mono">POST /v1/videos(async polling)</td><td><span class="badge ok" data-i18n="doc.supported">✅ Supported</span></td></tr>
-          <tr><td data-i18n="doc.cAgent">Autonomous agent mode needing tool calls</td><td class="mono">tool_calls / function calling</td><td><span class="badge warn" data-i18n="doc.unsupported">⚠️ Unsupported</span></td></tr>
+          <tr><td data-i18n="doc.cAgent">Autonomous agent mode (Claude Code, omp, Cline, Cursor)</td><td class="mono">tool_calls / function calling</td><td><span class="badge ok" data-i18n="doc.supported">✅ Supported</span></td></tr>
         </tbody>
       </table></div>
 
       <div class="hint" style="margin-top:8px" data-i18n="doc.toolLim">
-        <b>About the tool-calling limitation (important, verified):</b><br>
-        The muse.ai web assistant has an explicit alignment policy against emitting pseudo-tool-call JSON — the verbatim response in testing was
-        "I won't output pseudo tool calls in that JSON format — I don't have a get_weather tool."
-        Adapting with three different prompt protocols in different positions all failed.<br>
-        So: <b>autonomous agent mode</b> depending on <code>tool_calls</code> (auto file read/write, command execution) is not supported;
-        but all <b>Q-and-A style</b> uses — chat, coding, explaining, translating, summarizing, images, video — <b>all fully work</b>.<br>
-        If a client forces a <code>tools</code> field, the API will not error; it ignores the tool declarations and answers as a normal chat.
+        <b>Tool calling — now solved in this fork:</b><br>
+        The upstream project documented this as unsupported: muse.ai's assistant refuses to emit pseudo-tool-call JSON when asked via prompt injection.<br>
+        This fork bypasses that entirely using <b>Jev</b> (TypeSafe System One model via OpenCode free endpoint — no key needed).
+        Jev intercepts the request <em>before</em> muse.ai, selects the right tool and fills its arguments from the conversation, then returns a proper
+        <code>tool_calls</code> response. muse.ai only sees round 2, with the tool result injected as natural context — it responds as if it looked the data up itself.<br>
+        <b>Verified working:</b> Claude Code, omp (oh-my-pi), Cline, Cursor, any OpenAI-compatible agent. Streaming tool_calls with SSE keepalive supported.
       </div>
     </div>
   </section>
@@ -964,7 +963,7 @@ const I18N = {
     "doc.sModel": "<td data-i18n=\"doc.sModel\">Model name",
     "doc.anyModel": "<b>Any model name works<\/b>: common names (<code>gpt-4o<\/code>, <code>gpt-5<\/code>,\n        <code>claude-sonnet-4<\/code>, <code>deepseek-chat<\/code>, <code>gemini-2.5-pro<\/code>, etc.)\n        are auto-mapped to the matching capability; unknown names pass through untouched, and since muse.ai routes automatically anyway,\n        results are unaffected.",
     "doc.hCompat": "Compatibility by client type",
-    "doc.toolLim": "<b>About the tool-calling limitation (important, verified):<\/b><br>\n        The muse.ai web assistant has an explicit alignment policy against emitting pseudo-tool-call JSON — the verbatim response in testing was\n        \"I won't output pseudo tool calls in that JSON format — I don't have a get_weather tool.\"\n        Adapting with three different prompt protocols in different positions all failed.<br>\n        So: <b>autonomous agent mode<\/b> depending on <code>tool_calls<\/code> (auto file read/write, command execution) is not supported;\n        but all <b>Q-and-A style<\/b> uses — chat, coding, explaining, translating, summarizing, images, video — <b>all fully work<\/b>.<br>\n        If a client forces a <code>tools<\/code> field, the API will not error; it ignores the tool declarations and answers as a normal chat.",
+    "doc.toolLim": "<b>Tool calling — solved in this fork (upstream: unsupported):<\/b><br>\n        The upstream project documented tool_calls as unsupported because muse.ai refuses to emit pseudo-tool-call JSON via prompt injection.\n        This fork bypasses that using <b>Jev<\/b> (TypeSafe System One model, free via OpenCode — no key needed). Jev intercepts before muse.ai,\n        picks the right tool and fills its arguments, then injects the tool result as natural context on round 2.\n        muse.ai responds as if it already had the data — it never sees the tool protocol at all.<br>\n        <b>Verified:<\/b> Claude Code, omp (oh-my-pi), Cline, Cursor — file read\/write, bash, search, any tool your agent uses.",
     "doc.aStatus": "<td data-i18n=\"doc.aStatus\">Service overview + account pool + recent tasks",
     "doc.aList": "<td data-i18n=\"doc.aList\">Account list",
     "doc.aAdd": "<td data-i18n=\"doc.aAdd\">Add accounts (single / batch text)",
@@ -984,7 +983,7 @@ const I18N = {
     "doc.cTools": "<td data-i18n=\"doc.cTools\">Translation / summary / explainer tools",
     "doc.cImg": "<td data-i18n=\"doc.cImg\">Image clients",
     "doc.cVid": "<td data-i18n=\"doc.cVid\">Video generation clients",
-    "doc.cAgent": "<td data-i18n=\"doc.cAgent\">Autonomous agent mode needing tool calls",
+    "doc.cAgent": "<td data-i18n=\"doc.cAgent\">Autonomous agent mode (Claude Code, omp, Cline, Cursor)",
     "doc.supported": "<span class=\"badge ok\" data-i18n=\"doc.supported\">✅ Supported",
     "doc.unsupported": "<span class=\"badge warn\" data-i18n=\"doc.unsupported\">⚠️ Unsupported",
     "ft.os": "GitHub: <a href=\"https://github.com/its-benjamin/muse2api\" target=\"_blank\" style=\"color:var(--acc);text-decoration:none\">its-benjamin/muse2api<\/a> · Upstream: <a href=\"https://github.com/czg86389-hub/muse2api\" target=\"_blank\" style=\"color:var(--muted);text-decoration:none\">czg86389-hub/muse2api<\/a>",
@@ -1355,7 +1354,7 @@ const I18N = {
     "doc.sModel": "<td>模型名",
     "doc.anyModel": "<b>模型名随便填也能用<\/b>：常见名字（<code>gpt-4o<\/code>、<code>gpt-5<\/code>、\n        <code>claude-sonnet-4<\/code>、<code>deepseek-chat<\/code>、<code>gemini-2.5-pro<\/code> 等）\n        会自动映射到对应能力；完全没见过的名字会原样透传，muse.ai 那边本来就是自动路由，\n        不影响结果。",
     "doc.hCompat": "按客户端类型看能不能用",
-    "doc.toolLim": "<b>关于「工具调用」这条限制（重要，已实测）：<\/b><br>\n        muse.ai 的网页助手对「输出伪工具调用 JSON」有明确的对齐拒绝策略 —— 实测原话是\n        「我不会按这种 JSON 格式输出'伪工具调用'——我没有 get_weather 这个工具」。\n        用三种不同措辞、不同位置的提示词协议去适配，全部失败。<br>\n        所以：依赖 <code>tool_calls<\/code> 的<b>自主 Agent 模式<\/b>（自动读写文件、执行命令那一类）接不了；\n        但所有<b>问答式<\/b>用法 —— 对话、写代码、解释、翻译、总结、生图、生视频 —— <b>全部完全可用<\/b>。<br>\n        客户端若强行带上 <code>tools<\/code> 字段，接口不会报错，会忽略工具声明、按普通对话正常回答。",
+    "doc.toolLim": "<b>工具调用 — 本 Fork 已解决（上游：不支持）：<\/b><br>\n        上游将 tool_calls 标记为不支持，因 muse.ai 拒绝通过提示词注入输出伪工具调用 JSON。\n        本 Fork 通过 <b>Jev<\/b>（TypeSafe System One，免费接入 OpenCode，无需 Key）完全绕开。\n        Jev 在请求到达 muse.ai 前拦截，挑选工具并填充参数；第二轮将结果以自然上下文注入，\n        muse.ai 看到的是正常对话，感知不到任何工具协议。<br>\n        <b>已验证：<\/b>Claude Code、omp、Cline、Cursor —— 文件读写、bash、搜索等均可用。",
     "doc.aStatus": "<td>服务总览 + 账号池 + 最近任务",
     "doc.aList": "<td>账号列表",
     "doc.aAdd": "<td>添加账号（单条 / batch 批量文本）",
@@ -1375,7 +1374,7 @@ const I18N = {
     "doc.cTools": "<td>翻译 / 总结 / 解释类工具",
     "doc.cImg": "<td>画图类客户端",
     "doc.cVid": "<td>视频生成客户端",
-    "doc.cAgent": "<td>需要「工具调用」的自主 Agent 模式",
+    "doc.cAgent": "<td>自主 Agent 模式（Claude Code、omp、Cline、Cursor）",
     "doc.supported": "<span class=\"badge ok\">✅ 可用",
     "doc.unsupported": "<span class=\"badge warn\">⚠️ 不可用",
     "ft.os": "GitHub 仓库：<a href=\"https://github.com/its-benjamin/muse2api\" target=\"_blank\" style=\"color:var(--acc);text-decoration:none\">its-benjamin/muse2api<\/a> · 上游项目：<a href=\"https://github.com/czg86389-hub/muse2api\" target=\"_blank\" style=\"color:var(--muted);text-decoration:none\">czg86389-hub/muse2api<\/a>",

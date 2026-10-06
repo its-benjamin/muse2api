@@ -13,24 +13,48 @@
   <b>OpenAI- and Anthropic-compatible API for <a href="https://muse.ai/">muse.ai</a>: chat, image generation, video generation, Claude Code & Agent SDK support, multi-account pool, and automatic session renewal.</b>
 </p>
 
-> **Fork notice:** This is a fork of [czg86389-hub/muse2api](https://github.com/czg86389-hub/muse2api). The original runs on Linux and Docker. This fork adds native Windows support (auto-detects Chrome/Edge, no WSL needed), a bilingual EN/ZH admin UI, hardened anti-bot stealth, speed improvements, universal cookie import, and full **Anthropic Messages API** support (`POST /v1/messages` — works with Claude Code, Claude Agent SDK, and the Anthropic Python/TS SDKs). All core reverse-engineering credit goes to the original author and the [LINUX DO](https://linux.do/) community.
+> **Fork notice:** This is a fork of [czg86389-hub/muse2api](https://github.com/czg86389-hub/muse2api). The upstream is a solid Linux/Docker tool. This fork adds everything listed below that the upstream doesn't have — most notably **working tool calls** (the upstream documents this as permanently unsupported). All core reverse-engineering credit goes to the original author and the [LINUX DO](https://linux.do/) community.
+
+---
+
+## What this fork adds (upstream doesn't have these)
+
+| Feature | Status in upstream | This fork |
+|---|---|---|
+| **Tool calling** (`tool_calls`, function calling) | ❌ Documented unsupported — muse.ai refuses prompt injection | ✅ **Solved via Jev** (TypeSafe free, no key) |
+| **Anthropic Messages API** (`POST /v1/messages`) | ❌ Not present | ✅ Claude Code, Agent SDK, Anthropic SDKs |
+| **Windows native support** | ❌ Linux/Docker only | ✅ Auto-detects Chrome/Edge, `start-windows.bat` |
+| **Bilingual EN/ZH admin UI** | ❌ Chinese-only UI | ✅ Full i18n toggle, EN default |
+| **Streaming tool_calls via SSE** | ❌ N/A | ✅ SSE keepalive prevents client timeouts |
+| **Media bulk delete** | ✅ Added in upstream Oct 2026 | ✅ Synced + bilingual i18n |
 
 ---
 
 ## What it does
 
-muse2api wraps [muse.ai](https://muse.ai/)'s web interface as a drop-in OpenAI- and Anthropic-compatible REST API. Any client that speaks OpenAI's API or Anthropic's Messages API (Claude Code, Claude Agent SDK, ChatGPT clients, Cursor, Continue, LangChain, curl) works out of the box with no code changes.
+muse2api wraps [muse.ai](https://muse.ai/)'s web interface as a drop-in OpenAI- and Anthropic-compatible REST API. Any client that speaks OpenAI's API or Anthropic's Messages API works with no code changes — including agentic clients like Claude Code, omp, Cline, and Cursor that depend on tool calls.
 
-| Capability | Endpoint |
-|---|---|
-| Chat (OpenAI format, streaming + sync) | `POST /v1/chat/completions` |
-| Messages (Anthropic format, streaming + sync) | `POST /v1/messages` |
-| Image generation | `POST /v1/images/generations` |
-| Image editing | `POST /v1/images/edits` |
-| Video generation | `POST /v1/videos` |
-| Video status polling | `GET /v1/videos/{task_id}` |
-| Token counting | `POST /v1/messages/count_tokens` |
-| Serve generated media | `GET /v1/media/{filename}` |
+| Capability | Endpoint | Note |
+|---|---|---|
+| Chat (OpenAI format, streaming + sync) | `POST /v1/chat/completions` | |
+| **Tool calls / function calling** | `POST /v1/chat/completions` | **via Jev — this fork only** |
+| Messages (Anthropic format, streaming + sync) | `POST /v1/messages` | **this fork only** |
+| Image generation | `POST /v1/images/generations` | |
+| Image editing | `POST /v1/images/edits` | |
+| Video generation | `POST /v1/videos` | |
+| Video status polling | `GET /v1/videos/{task_id}` | |
+| Token counting | `POST /v1/messages/count_tokens` | |
+| Serve generated media | `GET /v1/media/{filename}` | |
+
+### How tool calling works
+
+muse.ai's assistant refuses to emit pseudo-tool-call JSON when asked via prompt injection — the upstream project verified this and marked it unsupported. This fork bypasses it entirely:
+
+1. **Round 1:** [Jev](https://docs.typesafe.ai) (TypeSafe System One model, free via OpenCode — `Authorization: Bearer public`, no signup) reads the conversation and tool definitions, picks the right tool, and fills its arguments. Returns `tool_calls` in ~1s without touching muse.ai.
+2. **Round 2:** The agent calls the real function and sends the result back. muse2api injects it as a natural assistant turn in the prompt — muse.ai responds as if it already had the data, no protocol visible.
+
+Tested with: Claude Code, omp (oh-my-pi), Cline, Cursor, Anthropic SDK.
+
 Features:
 
 - Multi-account pool: import multiple muse.ai accounts; requests are load-balanced and automatically fail over.
@@ -38,7 +62,6 @@ Features:
 - Anti-bot stealth: two-layer JS injection (puppeteer-extra 16 evasions + dynamic hardware/canvas/audio overrides matched to your real Chrome version).
 - Windows support: auto-detects Chrome/Edge, no WSL needed; `start-windows.bat` double-click launch.
 - Admin web UI: live account status, quota, one-click keepalive, media library, API testing, online upgrade.
-
 ---
 
 ## Quick start
