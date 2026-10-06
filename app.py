@@ -47,6 +47,7 @@ from pydantic import BaseModel, Field
 from config import CFG
 from engine import ESSENTIAL_COOKIES, MuseAuthError, MuseEngine, MuseGenerationError, _is_elevated
 from store import Store, account_expiry, min_expiry
+from jev_dispatch import jev_tool_dispatch
 
 import sys
 log = logging.getLogger("muse2api")
@@ -57,7 +58,7 @@ if not log.handlers:
     log.addHandler(_h)
 
 CFG.ensure_dirs()
-app = FastAPI(title="muse2api", version="1.5.4")
+app = FastAPI(title="muse2api", version="1.6.1")
 
 # The cookie helper script submits import requests from muse.ai pages, so that origin must be allowed;
 # browser extensions posting from chrome-extension:// are allowed too.
@@ -1500,12 +1501,27 @@ async def chat_completions(req: ChatRequest, _=Depends(auth)):
     if not prompt:
         raise HTTPException(400, "messages is empty")
 
-    # The tool-calling protocol is not injected by default -- the muse.ai assistant explicitly refuses "pseudo tool call" output,
-    # and injecting it only pollutes normal answers; see the tool_protocol comment in config.py.
+    # ── Jev tool-call dispatch (runs before muse; bypasses muse entirely on match) ──
+    # muse.ai's assistant explicitly refuses pseudo-tool-call JSON, so prompt injection
+    # doesn't work.  Jev reads the conversation + tool definitions and selects the right
+    # tool and its arguments directly.  Falls through to muse when no tool is triggered.
+    if req.tools:
+        jev_calls = await asyncio.to_thread(jev_tool_dispatch, req.messages, req.tools)
+        if jev_calls:
+            cid = "chatcmpl-" + uuid.uuid4().hex[:24]
+            created = int(time.time())
+            model = resolve_model(req.model, default="muse-spark")
+            log.info("Jev dispatched tool_calls: %s", [c["function"]["name"] for c in jev_calls])
+            return {"id": cid, "object": "chat.completion", "created": created,
+                    "model": model,
+                    "choices": [{"index": 0, "finish_reason": "tool_calls",
+                                 "message": {"role": "assistant", "content": None,
+                                             "tool_calls": jev_calls}}],
+                    "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
+
+    # The old prompt-injection path (off by default; MUSE2API_TOOL_PROTOCOL=1 re-enables).
     tool_note = build_tools_prompt(req.tools) if CFG.tool_protocol else ""
     if tool_note:
-        # Placed at the end: the beginning is the agent's own system prompt; sandwiched in the middle it gets ignored;
-        # right before the user message, the model follows trailing instructions much better.
         prompt = prompt + "\n\n" + tool_note
 
     model = resolve_model(req.model, default="muse-spark")
@@ -1783,6 +1799,33 @@ async def anthropic_messages(req: AnthropicMessagesRequest, _=Depends(auth)):
     prompt = build_anthropic_prompt(req)
     if not prompt:
         raise HTTPException(400, "messages is empty")
+
+    # ── Jev tool-call dispatch for Anthropic Messages API ──────────────────────────
+    if req.tools:
+        anthropic_messages_list = [m.model_dump() for m in req.messages]
+        jev_calls = await asyncio.to_thread(jev_tool_dispatch, anthropic_messages_list, req.tools)
+        if jev_calls:
+            log.info("Jev dispatched tool_calls (Anthropic): %s", [c["function"]["name"] for c in jev_calls])
+            tool_use_blocks = [
+                {
+                    "type": "tool_use",
+                    "id": c["id"],
+                    "name": c["function"]["name"],
+                    "input": json.loads(c["function"]["arguments"] or "{}"),
+                }
+                for c in jev_calls
+            ]
+            input_tokens = max(1, len(prompt) // 4)
+            return {
+                "id": "msg_" + uuid.uuid4().hex[:24],
+                "type": "message",
+                "role": "assistant",
+                "model": req.model,
+                "content": tool_use_blocks,
+                "stop_reason": "tool_use",
+                "stop_sequence": None,
+                "usage": {"input_tokens": input_tokens, "output_tokens": 0},
+            }
 
     tool_note = build_tools_prompt(req.tools) if CFG.tool_protocol and req.tools else ""
     if tool_note:
@@ -2505,6 +2548,7 @@ def get_keepalive_status(_=Depends(auth)):
 REPO_URL = os.environ.get("MUSE2API_REPO_URL", "https://github.com/its-benjamin/muse2api")
 UPSTREAM_REPO_URL = "https://github.com/czg86389-hub/muse2api"
 TRACKED_REPO_PATHS = [
+    "app.py", "engine.py", "config.py", "store.py", "cdp.py", "jev_dispatch.py",
     "admin.html", "README.md", "version.json", "requirements.txt",
     "Dockerfile", "docker-compose.yml", ".env.example", ".gitignore",
     "LICENSE", "extension", "deploy", "tools", "start-windows.bat", "start-windows.ps1", "run.py",
