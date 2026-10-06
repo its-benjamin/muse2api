@@ -1556,18 +1556,67 @@ async def chat_completions(req: ChatRequest, _=Depends(auth)):
         for m in req.messages
     )
     if req.tools and not _has_tool_results:
-        jev_calls = await asyncio.to_thread(jev_tool_dispatch, req.messages, req.tools)
-        if jev_calls:
-            cid = "chatcmpl-" + uuid.uuid4().hex[:24]
-            created = int(time.time())
-            model = resolve_model(req.model, default="muse-spark")
-            log.info("Jev dispatched tool_calls: %s", [c["function"]["name"] for c in jev_calls])
-            return {"id": cid, "object": "chat.completion", "created": created,
-                    "model": model,
-                    "choices": [{"index": 0, "finish_reason": "tool_calls",
-                                 "message": {"role": "assistant", "content": None,
-                                             "tool_calls": jev_calls}}],
-                    "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
+        if req.stream:
+            # For streaming requests: run Jev inside the generator so we can emit
+            # a keepalive comment immediately (prevents omp/client first-event timeout).
+            _jev_messages = list(req.messages)
+            _jev_tools = list(req.tools)
+            _stream_cid = "chatcmpl-" + uuid.uuid4().hex[:24]
+            _stream_created = int(time.time())
+            _stream_model = resolve_model(req.model, default="muse-spark")
+
+            async def _jev_streaming_dispatch():
+                # Keepalive comment — arrives immediately, resets client first-event timer
+                yield ": processing\n\n"
+                jev_calls = await asyncio.to_thread(jev_tool_dispatch, _jev_messages, _jev_tools)
+                if jev_calls:
+                    log.info("Jev dispatched tool_calls (stream): %s", [c["function"]["name"] for c in jev_calls])
+                    # Emit role chunk
+                    yield _sse(_chat_chunk(_stream_cid, _stream_created, _stream_model, {"role": "assistant"}))
+                    # Emit tool_call deltas per OpenAI streaming convention
+                    head = [{"index": i, "id": c["id"], "type": "function",
+                             "function": {"name": c["function"]["name"], "arguments": ""}}
+                            for i, c in enumerate(jev_calls)]
+                    body = [{"index": i, "function": {"arguments": c["function"]["arguments"]}}
+                            for i, c in enumerate(jev_calls)]
+                    yield _sse(_chat_chunk(_stream_cid, _stream_created, _stream_model, {"tool_calls": head}))
+                    yield _sse(_chat_chunk(_stream_cid, _stream_created, _stream_model, {"tool_calls": body}))
+                    yield _sse(_chat_chunk(_stream_cid, _stream_created, _stream_model, {}, finish="tool_calls"))
+                    yield "data: [DONE]\n\n"
+                else:
+                    # No tool call — fall through: stream muse normally
+                    # Re-enter normal stream path by yielding from it
+                    acc2 = store.pick_account(rotate=True, preferred_id=getattr(engine, "current_acc_id", None))
+                    if not acc2:
+                        yield _sse({"error": {"message": "No available accounts", "type": "server_error", "code": 503}})
+                        return
+                    _prompt2 = build_chat_prompt(_jev_messages) or ""
+                    _to2 = int(req.timeout or CFG.chat_timeout)
+                    yield _sse(_chat_chunk(_stream_cid, _stream_created, _stream_model, {"role": "assistant"}))
+                    stream_gen = safe_chat_stream(acc2["cookies"], _prompt2,
+                                                  acc2.get("cookies_exp"), _to2,
+                                                  account_id=acc2["id"])
+                    for chunk in stream_gen:
+                        for piece in _pace_text(chunk):
+                            yield _sse(_chat_chunk(_stream_cid, _stream_created, _stream_model, {"content": piece}))
+                    yield _sse(_chat_chunk(_stream_cid, _stream_created, _stream_model, {}, finish="stop"))
+                    yield "data: [DONE]\n\n"
+
+            return StreamingResponse(_jev_streaming_dispatch(), media_type="text/event-stream", headers=_SSE_HEADERS)
+        else:
+            # Non-streaming: run Jev and return JSON directly
+            jev_calls = await asyncio.to_thread(jev_tool_dispatch, req.messages, req.tools)
+            if jev_calls:
+                cid = "chatcmpl-" + uuid.uuid4().hex[:24]
+                created = int(time.time())
+                model = resolve_model(req.model, default="muse-spark")
+                log.info("Jev dispatched tool_calls: %s", [c["function"]["name"] for c in jev_calls])
+                return {"id": cid, "object": "chat.completion", "created": created,
+                        "model": model,
+                        "choices": [{"index": 0, "finish_reason": "tool_calls",
+                                     "message": {"role": "assistant", "content": None,
+                                                 "tool_calls": jev_calls}}],
+                        "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
 
     # The old prompt-injection path (off by default; MUSE2API_TOOL_PROTOCOL=1 re-enables).
     tool_note = build_tools_prompt(req.tools) if CFG.tool_protocol else ""

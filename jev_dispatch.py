@@ -143,6 +143,26 @@ def _extract_value(param_name: str, param_desc: str, text: str) -> str:
     pd = param_desc.lower()
 
     # URL
+    # File path / filename
+    if any(k in pn or k in pd for k in ("path", "file", "filename", "filepath",
+                                         "script", "module", "source", "target",
+                                         "output", "input", "src", "dst", "dest")):
+        # Absolute path: /foo/bar.ext or C:\foo\bar
+        m = re.search(r'([A-Za-z]:[\\/][\w./\\-]+|/[\w./\\-]{2,})', text)
+        if m:
+            return m.group(1).strip()
+        # Relative path with extension: ./foo.py or just foo.py
+        m = re.search(r'(?<!\w)([./~]?[\w./\\-]+\.[\w]{1,10})(?!\w)', text)
+        if m:
+            return m.group(1).strip()
+        # Backtick or quoted filename
+        m = re.search(r'[`"\']([^`"\']{2,120})[`"\']', text)
+        if m:
+            return m.group(1)
+        # Plain word.ext anywhere
+        m = re.search(r'\b([\w-]+\.(?:py|js|ts|rs|go|c|cpp|h|json|yml|yaml|toml|txt|md|sh|bat|css|html|sql|env))\b', text)
+        if m:
+            return m.group(1)
     if any(k in pn or k in pd for k in ("url", "link", "href", "uri", "endpoint")):
         m = re.search(r'https?://[^\s"\'>,]+', text)
         if m:
@@ -170,11 +190,30 @@ def _extract_value(param_name: str, param_desc: str, text: str) -> str:
         if caps:
             return caps[-1] if any(k in pn for k in ("dest", "arrival", "to")) else caps[0]
 
-    # Query / search / keyword
+    # Query / search / keyword / code / command
     if any(k in pn or k in pd for k in ("query", "search", "keyword", "q",
                                          "term", "topic", "subject", "message",
                                          "content", "text", "input", "prompt",
-                                         "question", "request", "description")):
+                                         "question", "request", "description",
+                                         "code", "command", "cmd", "snippet", "expression")):
+        # For code/command: extract after colon or from code fence
+        if any(k in pn or k in pd for k in ("code", "command", "cmd", "snippet")):
+            # Try longer phrases first so "run" doesn't greedily match before "this command:"
+            m = re.search(
+                r'(?:this\s+(?:code|command|script|snippet)|execute|eval)\s*:\s*(.+)',
+                text, re.IGNORECASE | re.DOTALL)
+            if m and m.group(1).strip():
+                return m.group(1).strip()
+            # "Run: ..." or bare colon
+            m = re.search(r'(?:run|exec)\s*:\s*(.+)', text, re.IGNORECASE | re.DOTALL)
+            if m and m.group(1).strip():
+                return m.group(1).strip()
+            # Any colon with content after
+            m = re.search(r':\s*(`{3}(?:\w+)?\n?(.+?)`{3}|(.+))$', text, re.DOTALL)
+            if m:
+                inner = (m.group(2) or m.group(3) or "").strip()
+                if inner and len(inner) > 2:
+                    return inner
         return text
 
     # Name / title
